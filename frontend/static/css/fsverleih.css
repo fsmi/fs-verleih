@@ -1,0 +1,86 @@
+/*
+To change this license header, choose License Headers in Project Properties.
+To change this template file, choose Tools | Templates
+and open the template in the editor.
+*/
+/* 
+    Created on : Sep 17, 2014, 2:51:39 PM
+    Author     : mpease
+*/
+
+table {
+    border: solid black 1px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+td {
+    border: solid black 1px;
+}
+
+div {
+    margin: 5px;
+}
+
+h2 {
+    text-align: center;
+    width: 100%;
+    background-color: #aaa;
+}
+
+.detail {
+    background-color: #ccc;
+    text-align: center;
+    cursor: pointer;
+}
+
+#detail {
+    z-index: 100;
+    position: fixed;
+    width: 70%;
+    height: 50%;
+    left: 15%;
+    top: 25%;
+    background-color: #bbb;
+    display: none;
+    border-radius: 1em;
+    box-shadow: 0.3em 0.3em 0.3em #222;
+}
+
+.button {
+    padding: 0 0.4em;
+    border-radius: 2px;
+    background-color: #888;
+}
+
+.detailContent {
+    position: relative;
+    height: 80%;
+    width: 90%;
+    overflow: auto;
+    display: none;
+}
+
+#background {
+    display: none;
+    opacity: 0.8;
+    background-color: #000;
+    width: 100%;
+    height: 100%;
+    position: fixed;
+    left: 0;
+    top: 0;
+    padding: 0;
+}
+
+#detailEventContent {
+    display: none;
+}
+
+#detailNav {
+    float: right;
+}
+
+label {
+    display: block
+}

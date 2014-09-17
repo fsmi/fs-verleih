@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<!--
+To change this license header, choose License Headers in Project Properties.
+To change this template file, choose Tools | Templates
+and open the template in the editor.
+-->
+<html>
+    <head>
+	<title>Verleih Software der Fachschaft Mathe/Info des KIT</title>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="static/css/fsverleih.css" />
+	<script src="static/js/kitinfo.js"></script>
+	<script src="static/js/moments.js"></script>
+    </head>
+    <body>
+	<div id="background" onclick="fsmi.verleih.hideDetails()"></div>
+	<div id="eventList">
+	    <h2>Veranstaltungen</h2>
+	    <table>
+		<thead>
+		    <tr>
+			<th>ID</th>
+			<th>Ausleiher</th>
+			<th>Gegenstände</th>
+			<th>Zeitraum (von - bis)</th>
+			<th>Bearbeitungsstatus</th>
+		    </tr>
+		</thead>
+		<tbody id="eventListBody">
+		    
+		</tbody>
+	    </table>
+	</div>
+	<h2>Ausleihmaterial</h2>
+	<div id="stuffList">
+	    <table>
+		<thead>
+		    <tr>
+			<th>ID</th>
+			<th>Name</th>
+			<th>Anzahl</th>
+		    </tr>
+		</thead>
+		<tbody id="stuffListBody">
+		    
+		</tbody>
+	    </table>
+	</div>
+	
+	<div id="detail">
+	    
+	    <div id="detailEventContent" class="detailContent">
+		<label for="detailEvent">Name:
+		    <span id="detailEvent"></span>
+		</label>
+		<label for="detailID">ID:
+		    <span id="detailID"></span>
+		</label>
+		<label for="detailComment">Kommentar:
+		    <span id="detailComment"></span>
+		</label>
+		<label for="detailFSContact">Fachschaftskontakt:
+		    <span id="detailFSContact"></span>
+		</label>
+		<label for="detailContect">Kontakt:
+		    <span id="detailContact"></span>
+		</label>
+		<label for="detailTime">Zeitraum:
+		    <span id="detailTime"></span>
+		</label>
+		<label for="detailStatus">Status:
+		    <span id="detailStatus"></span>
+		</label>
+		<span class="block">Stuff:</span>
+		    <ul id="detailStuffList"></ul>
+	    </div>
+	    <div id="detailStuffContent" class="detailContent">
+		<label for="detailStuffID">ID:
+		    <span id="detailStuffID"></span>
+		</label>
+		<label id="detailStuffName">Name: 
+		    <span id="detailStuffName"></span>
+		</label>
+		<label for="detailStuffInternPrice">Interner Preis:
+		    <span id="detailStuffInternPrice"></span>
+		</label>
+		<label for="detailStuffExternPrice">Externer Preis:
+		    <span id="detailStuffExternPrice">
+		    </span>
+		</label>
+		<label for="detailStuffCOunt">Anzahl:
+		    <span id="detailStuffCount"></span>
+		</label>
+		<span>Infos:</span>
+		<table>
+		    <tbody id="detailStuffInfos"></tbody>
+		</table>
+	    </div>
+	    <div id="addMaterialContent" class="detailContent">
+		<h3>Material hinzufügen</h3>
+		<label for="addStuffName">Name: 
+		    <input type="text" id="addStuffName" />
+		</label>
+		<label for="addStuffInternPrice">Interner Preis:
+		    <input type="text" id="addStuffInternPrice" />
+		</label>
+		<label for="addStuffExternPrice">Externer Preis:
+		    <input type="text" id="addStuffExternPrice" />
+		</label>
+		<label for="addStuffCount">Anzahl:
+		    <input type="text" id="addStuffCount" />
+		</label>
+		<span>Infos:</span>
+		<table>
+		    <thead>
+			<tr>
+			    <th>Key</th>
+			    <th>Value</th>
+			    <th>Type</th>
+			    <th><span class="button" onclick="fsmi.verleih.addInfoRow()">Info hinzufügen</span></th>
+			</tr>
+		    </thead>
+		    <tbody id="addStuffInfos"></tbody>
+		</table>
+		<div id="addStuffActionBar">
+		<span class="button" onclick="fsmi.verleih.addMaterial()">Material hinzufügen</span>
+		</div>
+		</div>
+	    <div id="detailNav">
+		<span class="button" onclick="fsmi.verleih.hideDetails()">hide</span>
+	    </div>
+	</div>
+	
+	<div id="actionbar">
+	    <span class="button" onclick="fsmi.verleih.showMaterialDialog()">Material hinzufügen</span>
+	</div>
+	<script src="static/js/fsverleih.js">
+	</script>
+    </body>
+</html>
