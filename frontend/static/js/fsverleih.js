@@ -6,9 +6,98 @@
 
 var fsmi = fsmi || {};
 
+fsmi.menu = {
+    MENU: [
+	"overviewDiv",
+	"borrowDiv",
+	"allowDiv",
+	"giveDiv",
+	"getDiv"
+    ],
+    changeTo: function(elem) {
+	this.MENU.forEach(function(val) {
+	    gui.elem(val).style.display = "none";
+	});
+	gui.elem(elem).style.display = "block";
+    },
+    parseHash: function() {
+	var hash = window.location.hash;
+	
+	this.MENU.forEach(function(val) {
+	    if (hash === "#" + val.slice(0, -3)) {
+		fsmi.menu.changeTo(val);
+		return;
+	    }
+	});
+    }
+}
+
 fsmi.verleih = {
+    secret: "",
     url: "../backend/db.php",
     matInfoCounter: 0,
+    STATES: {
+	INCOMING: {id: 1, text: "Eingegangen"},
+	ACCEPTED: {id: 2, text: "Akzeptiert"},
+	OUT: {id: 3, text: "Ausgeliehen"},
+	FINISHED: {id: 4, text: "Zurückgegeben"},
+	REJECTED: {id: -1, text: "Zurückgewiesen"},
+	byId: function(id) {
+	    switch (id) {
+		case 1:
+		    return this.INCOMING;
+		case 2:
+		    return this.ACCEPTED;
+		case 3:
+		    return this.OUT;
+		case 4:
+		    return this.FINISHED;
+		case -1:
+		    return this.REJECTED;
+		default:
+		    return null;
+	    }
+	},
+	toText: function(id) {
+	    switch (id) {
+		case 1:
+		    return this.INCOMING.text;
+		case 2:
+		    return this.ACCEPTED.text;
+		case 3:
+		    return this.OUT.text;
+		case 4:
+		    return this.FINISHED.text;
+		case -1:
+		    return this.REJECTED.text;
+		default:
+		    return "";
+	    }
+	},
+	finishEvent: function(id) {
+	    this.eventStateChange(fsmi.verleih.url + "?finish-event", id);
+	},
+	allowEvent: function(id) {
+	    this.eventStateChange(fsmi.verleih.url + "?allow-event", id);
+	},
+	rejectEvent: function(id) {
+	    this.eventStateChange(fsmi.verleih.url + "?reject-event", id);
+	},
+	outEvent: function(id) {
+	    this.eventStateChange(fsmi.verleih.url + "?out-event", id);
+	},
+	eventStateChange: function(url, id) {
+	    ajax.asyncPost(url, JSON.stringify({
+		id: id,
+		secret: fsmi.verleih.mySecret
+	    }), function(xhr) {
+		console.log(xhr.response);
+		fsmi.verleih.hideDetails();
+		gui.elem('eventListBody').innerHTML = "";
+		fsmi.verleih.getEventsFromServer();
+	    });
+	}
+    },
     detail: function(id) {
 	this.getDetails(id);
 	gui.elem('detail').style.display = "block";
@@ -28,12 +117,11 @@ fsmi.verleih = {
 	gui.elem('detailContact').textContent = details.contact;
 	gui.elem('detailTime').textContent = moment.unix(details.start).format("DD.MM.YYYY HH:MM")
 		+ " - " + moment.unix(details.end).format("DD.MM.YYYY HH:MM");
-	gui.elem('detailStatus').textContent = details.state;
+	gui.elem('detailStatus').textContent = this.STATES.toText(details.state);
 
 	xhr = ajax.syncGet(this.url + "?stuff&id=" + id);
 
 	var stuff = JSON.parse(xhr.response).stuff;
-	console.log(stuff);
 	var list = gui.elem('detailStuffList');
 	list.innerHTML = "";
 	stuff.forEach(function(val) {
@@ -41,8 +129,31 @@ fsmi.verleih = {
 	    elem.textContent = val.count + "x " + val.name;
 
 	    list.appendChild(elem);
-
 	});
+
+	var nav = gui.elem('customDetailNav');
+	nav.innerHTML = "";
+	if (details.state === 1) {
+	    nav.appendChild(
+		    gui.createButton("Allow", function() {
+			fsmi.verleih.STATES.allowEvent(details.id)
+		    }));
+	    nav.appendChild(
+		    gui.createButton(
+			    "Reject", function() {
+				fsmi.verleih.STATES.rejectEvent(details.id)
+			    }));
+	} else if (details.state === 2) {
+	    nav.appendChild(
+		    gui.createButton("Out", function() {
+			fsmi.verleih.STATES.outEvent(details.id);
+		    }));
+	} else if (details.state === 3) {
+	    nav.appendChild(
+		    gui.createButton("Finish", function() {
+			fsmi.verleih.STATES.finishEvent(details.id);
+		    }));
+	}
     },
     fillEvents: function(rawEvents) {
 
@@ -57,7 +168,7 @@ fsmi.verleih = {
 	    row.appendChild(gui.createColumn(val.stuff));
 	    row.appendChild(gui.createColumn(moment.unix(val.start).format("DD.MM.YYYY HH:MM")
 		    + " - " + moment.unix(val.end).format("DD.MM.YYYY HH:MM")));
-	    row.appendChild(gui.createColumn(val.state));
+	    row.appendChild(gui.createColumn(fsmi.verleih.STATES.toText(val.state)));
 
 	    var detailElem = gui.create('td');
 	    detailElem.setAttribute('id', 'detail' + val.id);
@@ -86,6 +197,15 @@ fsmi.verleih = {
 	    detailElem.setAttribute('onclick', 'fsmi.verleih.detailStuff(' + val.id + ')');
 	    detailElem.textContent = "[details]";
 	    row.appendChild(detailElem);
+
+	    var deleteElem = gui.create('td');
+	    deleteElem.setAttribute('id', 'delete' + val.id);
+	    deleteElem.classList.add('delete');
+	    deleteElem.classList.add('button');
+	    deleteElem.setAttribute('onclick', 'fsmi.verleih.deleteMaterial(' + val.id + ')');
+	    deleteElem.textContent = "[x]";
+	    row.appendChild(deleteElem);
+
 
 	    tbody.appendChild(row);
 	});
@@ -137,9 +257,24 @@ fsmi.verleih = {
 	gui.elem('detailStuffContent').style.display = "block";
 	gui.elem('background').style.display = "block";
     },
+    rangeSelected: function(event) {
+	
+	var start = event.detail.start;
+	var end = event.detail.end;
+	
+	if (start.isAfter(event.detail.end)) {
+	    end = event.detail.start;
+	    start = event.detail.end;
+	}
+	
+	gui.elem('eventFrom').value = start.format("YYYY-MM-DD HH:mm");
+	gui.elem('eventTo').value = end.format("YYYY-MM-DD HH:mm");
+    },
     init: function() {
+	fsmi.menu.changeTo(fsmi.menu.MENU[0]);
 	this.getEventsFromServer();
 	this.getStuffFromServer();
+	document.body.addEventListener('calendar_range_selected', fsmi.verleih.rangeSelected);
     },
     hideDetails: function() {
 	gui.elem('detail').style.display = "none";
@@ -189,11 +324,25 @@ fsmi.verleih = {
 	    count: count,
 	    infos: infos
 	}
-	
+
 	console.log(matObject);
 	console.log(ajax.syncPost(this.url + "?add-material", JSON.stringify(matObject)));
 	this.hideDetails();
 	this.reload();
+    },
+    deleteMaterial: function(id) {
+
+	if (confirm("Delete stuff with id: " + id + "?")) {
+
+	    ajax.asyncPost(this.url + "?delete-material", JSON.stringify({
+		id: id
+	    }), function(xhr) {
+		console.log(xhr.response);
+		gui.elem('stuffListBody').innerHTML = "";
+		fsmi.verleih.getStuffFromServer();
+	    });
+
+	}
     },
     reload: function() {
 	gui.elem('stuffListBody').innerHTML = "";
@@ -237,5 +386,4 @@ fsmi.verleih = {
 	tbody.appendChild(tr);
     }
 };
-
 fsmi.verleih.init();

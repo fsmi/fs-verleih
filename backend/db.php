@@ -9,6 +9,14 @@
 $dbpath = "verleih.db3";
 main();
 
+class STATES {
+	const INCOMING = 1;
+	const ACCEPTED =2;
+	const OUT = 3;
+	const FINISHED = 4;
+	const REJECTED = -1;
+}
+
 function main() {
     global $db, $output;
 
@@ -17,31 +25,31 @@ function main() {
     $db = new DB();
     $lists = new Lists();
     $stuff = new Stuff();
-    
+    $event = new Event();
+
     // db connection
     if (!$db->connect()) {
-        header("WWW-Authenticate: Basic realm=\"Garfield API Access (Invalid Credentials for " . $_SERVER['PHP_AUTH_USER'] . ")\"");
-        header("HTTP/1.0 401 Unauthorized");
+	header("WWW-Authenticate: Basic realm=\"Garfield API Access (Invalid Credentials for " . $_SERVER['PHP_AUTH_USER'] . ")\"");
+	header("HTTP/1.0 401 Unauthorized");
 
-        die();
+	die();
     }
-/*
-    if (isset($_GET["save"])) {
-        $output->addStatus("debug", "save");
-        $http_raw = file_get_contents("php://input");
+    /*
+      if (isset($_GET["save"])) {
+      $output->addStatus("debug", "save");
+      $http_raw = file_get_contents("php://input");
 
-        if (isset($http_raw) && !empty($http_raw)) {
-            $input = json_decode($http_raw, true);
-            $cart->save($input);
-        }
-    }
-*/
+      if (isset($http_raw) && !empty($http_raw)) {
+      $input = json_decode($http_raw, true);
+      $cart->save($input);
+      }
+      }
+     */
     $http_raw = file_get_contents("php://input");
-    
+
     if (isset($_GET["events"])) {
-        $lists->events();
-    }
-    else if (isset($_GET["stuff"])) {
+	$lists->events();
+    } else if (isset($_GET["stuff"])) {
 	$lists->stuff();
     } else if (isset($_GET["details"])) {
 	$lists->details();
@@ -51,9 +59,27 @@ function main() {
 	$lists->stuffDetail();
     } else if (isset($_GET["stuffinfo"])) {
 	$lists->stuffInfo();
-    } else if (isset($_GET["add-material"])) {
-	if (isset($http_raw) && !empty($http_raw)) {
-	    $stuff->add($http_raw);
+    }
+
+    if (isset($http_raw) && !empty($http_raw)) {
+
+	$obj = json_decode($http_raw, true);
+	if (isset($_GET["allow-event"])) {
+	    $event->allow($obj);
+	}
+	if (isset($_GET["reject-event"])) {
+	    $event->reject($obj);
+	}
+	if (isset($_GET["out-event"])) {
+	    $event->out($obj);
+	}
+	if (isset($_GET["finish-event"])) {
+	    $event->finish($obj);
+	}
+	if (isset($_GET["add-material"])) {
+	    $stuff->add($obj);
+	} else if (isset($_GET["delete-material"])) {
+	    $stuff->delete($obj);
 	}
     }
 
@@ -61,169 +87,248 @@ function main() {
 }
 
 class Stuff {
-    
+
     public function add($object) {
 	global $db, $output;
-	
-	$stuff = json_decode($object, true);
-	$output->add("stuffBack", $stuff);
-	
+
+	$output->add("stuffBack", $object);
+
 	$sql = "INSERT INTO stuff (name, intern_price, extern_price, count) "
 		. "VALUES(:name, :intern_price, :extern_price, :count)";
-	
+
 	$param = array(
 	    ':name' => $stuff['name'],
 	    ':intern_price' => $stuff['intern_price'],
 	    ':extern_price' => $stuff['extern_price'],
 	    ':count' => $stuff['count']);
-	
+
 	$db->beginTransaction();
-	
+
 	$stmt = $db->query($sql, $param);
-	
+
 	$id = $db->lastInsertID();
 	$output->addStatus("add-stuff", $stmt->errorInfo());
-	
+
 	foreach ($stuff['infos'] as $info) {
 	    $sql = "INSERT INTO stuff_infos(key, value, type, stuff) VALUES(:key, :value, :type, :stuff)";
-	    
+
 	    $param = array(
 		':key' => $info['key'],
 		':value' => $info['value'],
 		':type' => $info['type'],
 		':stuff' => $id
 	    );
-	    
+
 	    $stmt = $db->query($sql, $param);
-	
-	$output->addStatus("add-stuff-info", $stmt->errorInfo());
-	
+
+	    $output->addStatus("add-stuff-info", $stmt->errorInfo());
 	}
 	$db->commit();
     }
+
+    public function delete($object) {
+	global $db, $output;
+
+	if (!isset($object["id"]) || empty($object["id"])) {
+	    $output->addStatus("delete-stuff", "No ID set!");
+	    return;
+	}
+
+	$sql = "DELETE FROM stuff WHERE id = :id";
+
+	$param = array(
+	    ":id" => $object["id"]
+	);
+
+	$stmt = $db->query($sql, $param);
+
+	$output->addStatus("delete-stuff", $stmt->errorInfo());
+    }
+
 }
 
 class Lists {
-    
+
     function events() {
 	global $db, $output;
-	
-	$sql = "SELECT event.id, contact.name AS contact, states.name AS state, start, end, fscontact, comment, group_concat(stuff.name) AS stuff"
-		. " FROM event "
-		. "JOIN contact "
-		. "ON (event.contact = contact.id) "
-		. "JOIN states "
-		. "ON (event.state = states.id) "
-		. "LEFT JOIN event_stuff "
-		. "ON (event.id = event_stuff.event) "
-		. "LEFT JOIN stuff "
-		. "ON (event_stuff.stuff = stuff.id) "
-		. "ORDER BY start ASC";
-	
+
+	$sql = "SELECT * FROM events ORDER BY start ASC";
+	/*
+	  $sql = "SELECT event.id, contact.name AS contact, states.name AS state, start, end, fscontact, comment, group_concat(stuff.name) AS stuff"
+	  . " FROM event "
+	  . "JOIN contact "
+	  . "ON (event.contact = contact.id) "
+	  . "JOIN states "
+	  . "ON (event.state = states.id) "
+	  . "LEFT JOIN event_stuff "
+	  . "ON (event.id = event_stuff.event) "
+	  . "LEFT JOIN stuff "
+	  . "ON (event_stuff.stuff = stuff.id) "
+	  . "ORDER BY start ASC";
+	 */
 	$param = array();
-	
+
 	$stmt = $db->query($sql, $param);
 
-        $output->add("events", $stmt->fetchAll(PDO::FETCH_ASSOC));
-	
+	$output->add("events", $stmt->fetchAll(PDO::FETCH_ASSOC));
     }
-    
+
     function stuffList() {
 	global $db, $output;
-	
+
 	$sql = "SELECT * FROM stuff";
-	
+
 	$param = array();
-	
+
 	$stmt = $db->query($sql, $param);
 
-        $output->add("stufflist", $stmt->fetchAll(PDO::FETCH_ASSOC));
+	$output->add("stufflist", $stmt->fetchAll(PDO::FETCH_ASSOC));
     }
-    
+
     function stuffInfo() {
 	global $db, $output;
-	
+
 	$id = $_GET['id'];
-	
+
 	$param = array();
-	
+
 	if (isset($id) && !empty($id)) {
-	 $sql = "SELECT * FROM stuff_infos WHERE stuff = :id";
-	   $param[':id'] = $id;
+	    $sql = "SELECT * FROM stuff_infos WHERE stuff = :id";
+	    $param[':id'] = $id;
 	} else {
 	    return;
 	}
-	
+
 	$stmt = $db->query($sql, $param);
 
-        $output->add("stuffinfo", $stmt->fetchAll(PDO::FETCH_ASSOC));
+	$output->add("stuffinfo", $stmt->fetchAll(PDO::FETCH_ASSOC));
     }
-    
+
     function stuffDetail() {
 	global $db, $output;
-	
+
 	$id = $_GET['id'];
-	
+
 	$param = array();
-	
+
 	if (isset($id) && !empty($id)) {
-	 $sql = "SELECT * FROM stuff WHERE id = :id";
-	   $param[':id'] = $id;
+	    $sql = "SELECT * FROM stuff WHERE id = :id";
+	    $param[':id'] = $id;
 	} else {
 	    return;
 	}
-	
+
 	$stmt = $db->query($sql, $param);
 
-        $output->add("stuffdetail", $stmt->fetchAll(PDO::FETCH_ASSOC));
+	$output->add("stuffdetail", $stmt->fetchAll(PDO::FETCH_ASSOC));
     }
-    
+
     function details() {
 	global $db, $output;
-	
+
 	$id = $_GET['id'];
-	
+
 	$param = array();
-	
+
 	if (isset($id) && !empty($id)) {
-	 $sql = "SELECT event.name, event.id, contact.name AS contact, states.name AS state, start, end, fscontact, comment"
-		. " FROM event "
-		. "JOIN contact "
-		. "ON (event.contact = contact.id) "
-		. "JOIN states "
-		. "ON (event.state = states.id)"
-		 . "WHERE event.id = :id";
-	   $param[':id'] = $id;
+	    $sql = "SELECT * FROM events "
+		    . "WHERE id = :id";
+	    $param[':id'] = $id;
 	} else {
 	    return;
 	}
-	
+
 	$stmt = $db->query($sql, $param);
 
-        $output->add("details", $stmt->fetchAll(PDO::FETCH_ASSOC));
+	$output->add("details", $stmt->fetchAll(PDO::FETCH_ASSOC));
     }
-    
+
     function stuff() {
 	global $db, $output;
-	
+
 	$id = $_GET['id'];
-	
+
 	$param = array();
-	
+
 	if (isset($id) && !empty($id)) {
-	 $sql = "SELECT id, name, COUNT(name) AS count, event, intern_price, extern_price"
-		. " FROM stuff JOIN event_stuff ON (stuff.id = event_stuff.stuff) WHERE event_stuff.event = :event GROUP BY name";
-		$param[':event'] = $id;
-	   
+	    $sql = "SELECT id, name, COUNT(name) AS count, event, intern_price, extern_price"
+		    . " FROM stuff JOIN event_stuff ON (stuff.id = event_stuff.stuff) WHERE event_stuff.event = :event GROUP BY name";
+	    $param[':event'] = $id;
 	} else {
 	    $sql = "SELECT id, name, count, event, intern_price, extern_price FROM stuff JOIN event_stuff ON (stuff.id = event_stuff.stuff)";
 	}
-	
-	
+
+
 	$stmt = $db->query($sql, $param);
 
-        $output->add("stuff", $stmt->fetchAll(PDO::FETCH_ASSOC));
+	$output->add("stuff", $stmt->fetchAll(PDO::FETCH_ASSOC));
     }
+
+}
+
+class Event {
+
+    public function allow($obj) {
+	global $db, $output;
+	if (!isset($obj["id"]) || empty($obj["id"])) {
+	    $output->addStatus("allow-event", "No ID is set!");
+	    return;
+	}
+	$output->addStatus("allow-event", $this->updateState(
+		$obj["id"], STATES::ACCEPTED));
+    }
+
+    public function reject($obj) {
+	global $output;
+	if (!isset($obj["id"]) || empty($obj["id"])) {
+	    $output->addStatus("reject-event", "No ID is set!");
+	    return;
+	}
+
+	$output->addStatus("reject-event", $this->updateState(
+		$obj["id"], STATES::REJECTED));
+    }
+    
+    public function out($obj) {
+	global $output;
+	if (!isset($obj["id"]) || empty($obj["id"])) {
+	    $output->addStatus("out-event", "No ID is set!");
+	    return;
+	}
+
+	$output->addStatus("out-event", $this->updateState(
+		$obj["id"], STATES::OUT));
+    }
+    public function finish($obj) {
+	global $output;
+	if (!isset($obj["id"]) || empty($obj["id"])) {
+	    $output->addStatus("finish-event", "No ID is set!");
+	    return;
+	}
+
+	$output->addStatus("finish-event", $this->updateState(
+		$obj["id"], STATES::FINISHED));
+    }
+
+    public function updateState($id, $state) {
+	global $db;
+	$sql = "UPDATE event SET state = :state WHERE id = :id";
+	
+	$param = array(
+	    ":id" => $id,
+	    ":state" => $state,
+	);
+	
+	if ($state != -1) {
+	    $sql .= " AND state = :current";
+	    $param[":current"] = ($state - 1);
+	}
+
+	$stmt = $db->query($sql, $param);
+
+	return $stmt->errorInfo();
+    }
+
 }
 
 class DB {
@@ -232,65 +337,65 @@ class DB {
     private $order = "";
 
     function connect() {
-        global $dbpath;
+	global $dbpath;
 
-        try {
-            $this->db = new PDO('sqlite:' . $dbpath);
-            $this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_WARNING);
-        } catch (PDOException $e) {
+	try {
+	    $this->db = new PDO('sqlite:' . $dbpath);
+	    $this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_WARNING);
+	} catch (PDOException $e) {
 
-            header("Status: 500 " . $e->getMessage());
-            echo $e->getMessage();
-            die();
-        }
+	    header("Status: 500 " . $e->getMessage());
+	    echo $e->getMessage();
+	    die();
+	}
 
-        return true;
+	return true;
     }
 
     function setOrder($tag, $order) {
-        $this->order = " ORDER BY " . $tag . " " . $order;
+	$this->order = " ORDER BY " . $tag . " " . $order;
     }
 
     function query($sql, $params) {
-        global $output, $orderBy;
+	global $output, $orderBy;
 
-        if (strpos($sql, "SELECT") !== false) {
+	if (strpos($sql, "SELECT") !== false) {
 
-            $sql .= $this->order;
+	    $sql .= $this->order;
 
-            if (isset($_GET["limit"]) && !empty($_GET["limit"])) {
-                $sql .= " LIMIT :limit";
-                $params[":limit"] = $_GET["limit"];
-            }
-        }
+	    if (isset($_GET["limit"]) && !empty($_GET["limit"])) {
+		$sql .= " LIMIT :limit";
+		$params[":limit"] = $_GET["limit"];
+	    }
+	}
 
-        $stm = $this->db->prepare($sql);
+	$stm = $this->db->prepare($sql);
 
-        if ($this->db->errorCode() > 0) {
-            $output->addStatus("db", $this->db->errorInfo());
-            return null;
-        }
+	if ($this->db->errorCode() > 0) {
+	    $output->addStatus("db", $this->db->errorInfo());
+	    return null;
+	}
 
-        $stm->execute($params);
+	$stm->execute($params);
 
 
-        return $stm;
+	return $stm;
     }
-    
+
     function beginTransaction() {
 	global $output;
 	if (!$this->db->beginTransaction()) {
 	    $output->addStatus("transaction", $this->db->errorInfo());
 	}
     }
-    
+
     function commit() {
 	global $output;
 	if (!$this->db->commit()) {
 	    $output->addStatus("commit", $this->db->errorInfo());
 	}
     }
-    
+
     function lastInsertID() {
 	return $this->db->lastInsertId();
     }
@@ -309,7 +414,7 @@ class Output {
      * constructor
      */
     private function __construct() {
-        $this->retVal['status']["db"] = "ok";
+	$this->retVal['status']["db"] = "ok";
     }
 
     /**
@@ -317,11 +422,11 @@ class Output {
      * @return Output output instance
      */
     public static function getInstance() {
-        if (!self::$instance) {
-            self::$instance = new self();
-        }
+	if (!self::$instance) {
+	    self::$instance = new self();
+	}
 
-        return self::$instance;
+	return self::$instance;
     }
 
     /**
@@ -330,7 +435,7 @@ class Output {
      * @param type $output
      */
     public function add($table, $output) {
-        $this->retVal[$table] = $output;
+	$this->retVal[$table] = $output;
     }
 
     /**
@@ -340,16 +445,16 @@ class Output {
      */
     public function addStatus($table, $output) {
 
-        if (is_array($output) && $output[1]) {
-            if (is_array($retVal["status"]["debug"])) {
-                $this->retVal["status"]["debug"][] = $output;
-            } else {
-                $retVal["status"]["debug"] = array($output);
-            }
-            $this->retVal["status"]["db"] = "failed";
-        }
+	if (is_array($output) && $output[1]) {
+	    if (is_array($retVal["status"]["debug"])) {
+		$this->retVal["status"]["debug"][] = $output;
+	    } else {
+		$retVal["status"]["debug"] = array($output);
+	    }
+	    $this->retVal["status"]["db"] = "failed";
+	}
 
-        $this->retVal['status'][$table] = $output;
+	$this->retVal['status'][$table] = $output;
     }
 
     /**
@@ -357,15 +462,15 @@ class Output {
      */
     public function write() {
 
-        header("Content-Type: application/json");
-        header("Access-Control-Allow-Origin: *");
-        # Rückmeldung senden
-        if (isset($_GET["callback"]) && !empty($_GET["callback"])) {
-            $callback = $_GET["callback"];
-            echo $callback . "('" . json_encode($this->retVal, JSON_NUMERIC_CHECK) . "')";
-        } else {
-            echo json_encode($this->retVal, JSON_NUMERIC_CHECK);
-        }
+	header("Content-Type: application/json");
+	header("Access-Control-Allow-Origin: *");
+	# Rückmeldung senden
+	if (isset($_GET["callback"]) && !empty($_GET["callback"])) {
+	    $callback = $_GET["callback"];
+	    echo $callback . "('" . json_encode($this->retVal, JSON_NUMERIC_CHECK) . "')";
+	} else {
+	    echo json_encode($this->retVal, JSON_NUMERIC_CHECK);
+	}
     }
 
 }

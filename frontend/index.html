@@ -10,11 +10,24 @@ and open the template in the editor.
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<link rel="stylesheet" href="static/css/fsverleih.css" />
+	<link rel="stylesheet" type="text/css" href="static/css/pikaday.css" />
+	<link rel="stylesheet" type="text/css" href="static/css/calendar.css" />
 	<script src="static/js/kitinfo.js"></script>
-	<script src="static/js/moments.js"></script>
+	
     </head>
     <body>
 	<div id="background" onclick="fsmi.verleih.hideDetails()"></div>
+	
+	<div id="header">
+	    <div id="menubar">
+		<span class="button" onclick="fsmi.menu.changeTo(fsmi.menu.MENU[0])">Übersicht</span>
+		<span class="button" onclick="fsmi.menu.changeTo(fsmi.menu.MENU[1])">Ausleihen</span>
+		<span class="button" onclick="fsmi.menu.changeTo(fsmi.menu.MENU[2])">Genehmigen</span>
+		<span class="button" onclick="fsmi.menu.changeTo(fsmi.menu.MENU[3])">Ausgabe</span>
+		<span class="button" onclick="fsmi.menu.changeTo(fsmi.menu.MENU[4])">Rückgabe</span>
+	    </div>
+	</div>
+	<div id="overviewDiv">
 	<div id="eventList">
 	    <h2>Veranstaltungen</h2>
 	    <table>
@@ -48,6 +61,35 @@ and open the template in the editor.
 	    </table>
 	</div>
 	
+	</div>
+	<div id="borrowDiv">
+	    <form id="borrowForm">
+		<label for="eventName">Event:<br />
+		    <input type="text" id="eventName" />
+		</label>
+		<label for="eventPerson">Wer: <br />
+		    <input type="text" id="eventPerson" />
+		</label>
+		<label for="eventFrom">Von: <br />
+		    <input type="datetime" id="eventFrom" />
+		</label>
+		<label for="eventTo">Bis: <br />
+		    <input type="datetime" id="eventTo" />
+		</label>
+		<div class="clear"></div>
+		    
+		    <div id="calendar_borrow_div"></div>
+	    </form>
+	</div>
+	<div id="allowDiv">
+	    
+	</div>
+	<div id="giveDiv">
+	    
+	</div>
+	<div id="getDiv">
+	    
+	</div>
 	<div id="detail">
 	    
 	    <div id="detailEventContent" class="detailContent">
@@ -126,8 +168,10 @@ and open the template in the editor.
 		<div id="addStuffActionBar">
 		<span class="button" onclick="fsmi.verleih.addMaterial()">Material hinzufügen</span>
 		</div>
+		
 		</div>
 	    <div id="detailNav">
+		<span id="customDetailNav"></span>
 		<span class="button" onclick="fsmi.verleih.hideDetails()">hide</span>
 	    </div>
 	</div>
@@ -135,7 +179,18 @@ and open the template in the editor.
 	<div id="actionbar">
 	    <span class="button" onclick="fsmi.verleih.showMaterialDialog()">Material hinzufügen</span>
 	</div>
-	<script src="static/js/fsverleih.js">
+	<script src="static/js/fsverleih.js"></script>
+	<script src="static/js/moments.js"></script>
+	<script src="static/js/pickaday.js"></script>
+	<script src="static/js/calendar.js"></script>
+	
+	<script>
+	    
+	    fsmi.menu.parseHash();
+	    
+	    var pickerFrom = new Pikaday({field: gui.elem('eventFrom'), format: 'YYYY-MM-DD'});
+	    var pickerTo = new Pikaday({field: gui.elem('eventTo'), format: 'YYYY-MM-DD'});
+	    var calendar = new Calendar("calendar_borrow_div");
 	</script>
     </body>
 </html>

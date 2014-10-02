@@ -105,6 +105,13 @@ var gui = gui || {
 	col.setAttribute('id', id);
 	col.textContent = content;
 	return col;
+    },
+    createButton: function(text, func) {
+	var button = gui.create('span');
+	button.classList.add('button');
+	button.textContent = text;
+	button.addEventListener('click', func);
+	return button;
     }
 };
 

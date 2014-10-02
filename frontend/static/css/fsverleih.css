@@ -8,6 +8,12 @@ and open the template in the editor.
     Author     : mpease
 */
 
+html, body {
+    width: 100%;
+    padding: 0;
+    margin: 0;
+}
+
 table {
     border: solid black 1px;
     margin: 0 auto;
@@ -50,7 +56,9 @@ h2 {
 .button {
     padding: 0 0.4em;
     border-radius: 2px;
-    background-color: #888;
+    background-color: #ccc;
+    text-align: center;
+    cursor: pointer;
 }
 
 .detailContent {
@@ -81,6 +89,25 @@ h2 {
     float: right;
 }
 
+#customDetailNav {
+    display: inline-block;
+}
+
 label {
-    display: block
+    display: inline-block;
+}
+
+#menubar {
+    display: inline-block;
+}
+
+#calendar_borrow_div {
+    width: 100%;
+    height: 30em;
+    padding: 0;
+    margin: 0;
+}
+
+#borrowDiv {
+    height: 80%;
 }
