@@ -10,8 +10,8 @@ and open the template in the editor.
 
 .calendar_day {
     display:inline-table;
-    height: 100%;
-    width: calc(100% / 9 + 10px);
+    //height: calc(48 * 2em + 94px);
+    width: calc(100% / 8 - 14px);
     text-align: center;
     border: solid #ddd 1px;
     margin: 0;
@@ -43,7 +43,7 @@ and open the template in the editor.
 
 .calendar_header_day, #calendar_nav {
     display:inline-table;
-    width: calc(100% / 9 + 8px);
+    width: calc((100% - 15px) / 8 - 14px);
     text-align: center;
     border: solid #ccc 1px;
     margin: 0;

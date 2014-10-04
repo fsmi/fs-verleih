@@ -79,6 +79,11 @@ function Calendar(div, time) {
     }
 
     function mark() {
+	
+	if (!startTime || !endTime) {
+	    return;
+	}
+	
 	console.log(startTime.format("YYYY-MM-DD HH:mm")
 		+ " - " + endTime.format("YYYY-MM-DD HH:mm"));
 
@@ -202,7 +207,12 @@ function Calendar(div, time) {
     }
 
     function reload() {
-
+	init(div);
+    }
+    
+    function setYearMonth(date) {
+	week = moment(date);
+	reload();
     }
 
     function createNav() {
@@ -210,6 +220,14 @@ function Calendar(div, time) {
 	nav.setAttribute('id', 'calendar_nav');
 
 	nav.appendChild(gui.createButton("<", actionBack));
+	var dateButton = gui.createButton(week.format("YYYY-MM"), null);
+
+	new Pikaday({
+	    field: dateButton,
+	    onSelect: setYearMonth
+	});
+
+	nav.appendChild(dateButton);
 	nav.appendChild(gui.createButton(">", actionForward));
 
 	return nav;
