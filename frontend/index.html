@@ -37,6 +37,7 @@ and open the template in the editor.
 		    <thead>
 			<tr>
 			    <th>ID</th>
+			    <th>Festname</th>
 			    <th>Ausleiher</th>
 			    <th>Gegenstände</th>
 			    <th>Zeitraum (von - bis)</th>
@@ -226,8 +227,18 @@ and open the template in the editor.
 
 		    fsmi.menu.parseHash();
 
-		    var pickerFrom = new Pikaday({field: gui.elem('eventFrom'), format: 'YYYY-MM-DD'});
-		    var pickerTo = new Pikaday({field: gui.elem('eventTo'), format: 'YYYY-MM-DD'});
+		    var pickerFrom = new Pikaday({
+			field: gui.elem('eventFrom'),
+			showTime: true,
+			show24hour: true,
+			format: 'YYYY-MM-DD HH:mm'
+		    });
+		    var pickerTo = new Pikaday({
+			field: gui.elem('eventTo'),
+			showTime: true,
+			use24hour: true,
+			format: 'YYYY-MM-DD HH:mm'
+		    });
 		    //var calendar = new Calendar("calendar_borrow_div");
 	</script>
     </body>

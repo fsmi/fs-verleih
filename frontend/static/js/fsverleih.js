@@ -174,6 +174,7 @@ fsmi.verleih = {
 
 	    var row = gui.create('tr');
 	    row.appendChild(gui.createColumn(val.id, 'event' + val.id));
+	    row.appendChild(gui.createColumn(val.name));
 	    row.appendChild(gui.createColumn(val.contact));
 	    row.appendChild(gui.createColumn(val.stuff));
 	    row.appendChild(gui.createColumn(moment.unix(val.start).format("DD.MM.YYYY HH:MM")
@@ -324,33 +325,34 @@ fsmi.verleih = {
 	    details: [
 		{
 		    key: "Mail",
-		    value: gui.elem('contact_mail')
+		    value: gui.elem('contact_mail').value
 		},
 		{
 		    key: "Phone",
-		    value: gui.elem('contact_phone')
+		    value: gui.elem('contact_phone').value
 		}
 	    ]
 	}
 
-	var startTime = moment(gui.elem('eventFrom').value, "YYYY-MM-DD HH:MM");
-	var endTime = moment(gui.elem('eventTo').value, "YYYY-MM-DD HH:MM");
+	var startTime = moment(gui.elem('eventFrom').value, "YYYY-MM-DD HH:mm");
+	var endTime = moment(gui.elem('eventTo').value, "YYYY-MM-DD HH:mm");
+	
 
-	var object = {
+	var outobject = {
 	    contact: contact,
 	    event: {
-		start: startTime,
-		end: endTime,
+		start: startTime.format("X"),
+		end: endTime.format("X"),
 		fscontact: fsmi.verleih.fsid,
 		comment: gui.elem("eventComment").value,
 		name: gui.elem('eventName').value,
-		stuff: stuff
+		stuff: fsmi.verleih.stuff
 	    }
 
 	};
-
+	console.log(outobject);
 	ajax.asyncPost(fsmi.verleih.url + "?add-event", 
-	JSON.stringify(object), function(xhr) {
+	JSON.stringify(outobject), function(xhr) {
 	    console.log(JSON.parse(xhr.response));
 	});
 

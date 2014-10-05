@@ -125,8 +125,12 @@
 
     compareDates = function(a,b)
     {
-        // weak date comparison (use setToStartOfDay(date) to ensure correct result)
-        return a.getTime() === b.getTime();
+        // Copy so we don't change the dates being passed in
+        var _a = new Date(a.getTime());
+        var _b = new Date(b.getTime());
+        setToStartOfDay(_a);
+        setToStartOfDay(_b);
+        return _a.getTime() === _b.getTime();
     },
 
     extend = function(to, from, overwrite)
@@ -182,7 +186,8 @@
         position: 'bottom left',
 
         // the default output format for `.toString()` and `field` value
-        format: 'YYYY-MM-DD',
+        // set in `config` based on if showTime is set
+        format: null,
 
         // the initial date to view when first opened
         defaultDate: null,
@@ -201,6 +206,9 @@
         // number of years either side, or array of upper/lower range
         yearRange: 10,
 
+        // show week numbers at head of row
+        showWeekNumber: false,
+
         // used internally (don't config outside)
         minYear: 0,
         maxYear: 9999,
@@ -218,9 +226,17 @@
         // how many months are visible
         numberOfMonths: 1,
 
+        // time
+        showTime: false,
+        showSeconds: false,
+        use24hour: false,
+
         // when numberOfMonths is used, this will help you to choose where the main calendar will be (default `left`, can be set to `right`)
         // only used for the first display or when a selected date is not visible
         mainCalendar: 'left',
+
+        // Specify a DOM element to render the calendar in
+        container: undefined,
 
         // internationalization
         i18n: {
@@ -228,7 +244,9 @@
             nextMonth     : 'Next Month',
             months        : ['January','February','March','April','May','June','July','August','September','October','November','December'],
             weekdays      : ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],
-            weekdaysShort : ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+            weekdaysShort : ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
+            midnight      : 'Midnight',
+            noon          : 'Noon'
         },
 
         // callback function
@@ -274,6 +292,13 @@
                '</td>';
     },
 
+    renderWeek = function (d, m, y) {
+        // Lifted from http://javascript.about.com/library/blweekyear.htm, lightly modified.
+        var onejan = new Date(y, 0, 1),
+            weekNum = Math.ceil((((new Date(y, m, d) - onejan) / 86400000) + onejan.getDay()+1)/7);
+        return '<td class="pika-week">' + weekNum + '</td>';
+    },
+
     renderRow = function(days, isRTL)
     {
         return '<tr>' + (isRTL ? days.reverse() : days).join('') + '</tr>';
@@ -287,6 +312,9 @@
     renderHead = function(opts)
     {
         var i, arr = [];
+        if (opts.showWeekNumber) {
+            arr.push('<th></th>');
+        }
         for (i = 0; i < 7; i++) {
             arr.push('<th scope="col"><abbr title="' + renderDayName(opts, i) + '">' + renderDayName(opts, i, true) + '</abbr></th>');
         }
@@ -357,6 +385,43 @@
         return '<table cellpadding="0" cellspacing="0" class="pika-table">' + renderHead(opts) + renderBody(data) + '</table>';
     },
 
+    renderTimePicker = function(num_options, selected_val, select_class, display_func) {
+        var to_return = '<td><select class="pika-select '+select_class+'">';
+        for (var i=0; i<num_options; i++) {
+            to_return += '<option value="'+i+'" '+(i==selected_val ? 'selected' : '')+'>'+display_func(i)+'</option>'
+        }
+        to_return += '</select></td>';
+        return to_return;
+    },
+
+    renderTime = function(hh, mm, ss, opts)
+    {
+        var to_return = '<table cellpadding="0" cellspacing="0" class="pika-time"><tbody><tr>' +
+            renderTimePicker(24, hh, 'pika-select-hour', function(i) {
+                if (opts.use24hour) {
+                    return i;
+                } else {
+                    var to_return = (i%12) + (i<12 ? ' AM' : ' PM');
+                    if (to_return == '0 AM') {
+                        return opts.i18n.midnight;
+                    } else if (to_return == '0 PM') {
+                        return opts.i18n.noon;
+                    } else {
+                        return to_return;
+                    }
+                }
+            }) +
+            '<td>:</td>' +
+            renderTimePicker(60, mm, 'pika-select-minute', function(i) { if (i < 10) return "0" + i; return i });
+
+        if (opts.showSeconds) {
+            to_return += '<td>:</td>' +
+                renderTimePicker(60, ss, 'pika-select-second', function(i) { if (i < 10) return "0" + i; return i });
+        }
+        return to_return + '</tr></tbody></table>';
+    },
+
+
 
     /**
      * Pikaday constructor
@@ -379,7 +444,17 @@
 
             if (!hasClass(target, 'is-disabled')) {
                 if (hasClass(target, 'pika-button') && !hasClass(target, 'is-empty')) {
-                    self.setDate(new Date(target.getAttribute('data-pika-year'), target.getAttribute('data-pika-month'), target.getAttribute('data-pika-day')));
+                    var newDate = new Date(
+                            target.getAttribute('data-pika-year'),
+                            target.getAttribute('data-pika-month'),
+                            target.getAttribute('data-pika-day')
+                        );
+                    // Preserve time selection when date changed
+                    if (self._d && opts.showTime) {
+                        newDate.setHours(self._d.getHours());
+                        newDate.setMinutes(self._d.getMinutes());
+                    }
+                    self.setDate(newDate);
                     if (opts.bound) {
                         sto(function() {
                             self.hide();
@@ -421,6 +496,15 @@
             }
             else if (hasClass(target, 'pika-select-year')) {
                 self.gotoYear(target.value);
+            }
+            else if (hasClass(target, 'pika-select-hour')) {
+                self.setTime(target.value);
+            }
+            else if (hasClass(target, 'pika-select-minute')) {
+                self.setTime(null, target.value);
+            }
+            else if (hasClass(target, 'pika-select-second')) {
+                self.setTime(null, null, target.value);
             }
         };
 
@@ -496,7 +580,9 @@
         addEvent(self.el, 'change', self._onChange);
 
         if (opts.field) {
-            if (opts.bound) {
+            if (opts.container) {
+                opts.container.appendChild(self.el);
+            } else if (opts.bound) {
                 document.body.appendChild(self.el);
             } else {
                 opts.field.parentNode.insertBefore(self.el, opts.field.nextSibling);
@@ -575,12 +661,12 @@
                 opts.maxDate = opts.minDate = false;
             }
             if (opts.minDate) {
-                setToStartOfDay(opts.minDate);
+                if (!opts.showTime) setToStartOfDay(opts.minDate);
                 opts.minYear  = opts.minDate.getFullYear();
                 opts.minMonth = opts.minDate.getMonth();
             }
             if (opts.maxDate) {
-                setToStartOfDay(opts.maxDate);
+                if (!opts.showTime) setToStartOfDay(opts.maxDate);
                 opts.maxYear  = opts.maxDate.getFullYear();
                 opts.maxMonth = opts.maxDate.getMonth();
             }
@@ -596,6 +682,14 @@
                 }
             }
 
+            // If no format is given, set based on showTime
+            if (opts.format === null) {
+                opts.format = 'YYYY-MM-DD';
+                if (opts.showTime) {
+                    opts.format += ' HH:mm:ss';
+                }
+            }
+
             return opts;
         },
 
@@ -604,7 +698,7 @@
          */
         toString: function(format)
         {
-            return !isDate(this._d) ? '' : hasMoment ? moment(this._d).format(format || this._o.format) : this._d.toDateString();
+            return !isDate(this._d) ? '' : hasMoment ? moment(this._d).format(format || this._o.format) : this._o.showTime ? this._d.toString() : this._d.toDateString();
         },
 
         /**
@@ -634,6 +728,27 @@
         },
 
         /**
+         * set time components
+         * Currently defaulting to setting date to today if not set
+         */
+        setTime: function(hours, minutes, seconds) {
+            if (!this._d) {
+                this._d = new Date();
+                this._d.setHours(0,0,0,0);
+            }
+            if (hours) {
+                this._d.setHours(hours);
+            }
+            if (minutes) {
+                this._d.setMinutes(minutes);
+            }
+            if (seconds) {
+                this._d.setSeconds(seconds);
+            }
+            this.setDate(this._d);
+        },
+
+        /**
          * set the current selection
          */
         setDate: function(date, preventOnSelect)
@@ -659,7 +774,13 @@
             }
 
             this._d = new Date(date.getTime());
-            setToStartOfDay(this._d);
+
+            if (this._o.showTime && !this._o.showSeconds) {
+                this._d.setSeconds(0);
+            } else if (!this._o.showTime) {
+                setToStartOfDay(this._d);
+            }
+
             this.gotoDate(this._d);
 
             if (this._o.field) {
@@ -695,7 +816,10 @@
             if (newCalendar) {
                 this.calendars = [{
                     month: date.getMonth(),
-                    year: date.getFullYear()
+                    year: date.getFullYear(),
+                    hour: date.getHours(),
+                    minute: date.getMinutes(),
+                    second: date.getSeconds()
                 }];
                 if (this._o.mainCalendar === 'right') {
                     this.calendars[0].month += 1 - this._o.numberOfMonths;
@@ -803,6 +927,16 @@
                 html += '<div class="pika-lendar">' + renderTitle(this, c, this.calendars[c].year, this.calendars[c].month, this.calendars[0].year) + this.render(this.calendars[c].year, this.calendars[c].month) + '</div>';
             }
 
+            if (opts.showTime) {
+                html += '<div>' +
+                        renderTime(
+                            this._d ? this._d.getHours() : 0,
+                            this._d ? this._d.getMinutes() : 0,
+                            this._d ? this._d.getSeconds() : 0,
+                            opts)
+                    + '</div>';
+            }
+
             this.el.innerHTML = html;
 
             if (opts.bound) {
@@ -823,6 +957,7 @@
 
         adjustPosition: function()
         {
+            if (this._o.container) return;
             var field = this._o.trigger, pEl = field,
             width = this.el.offsetWidth, height = this.el.offsetHeight,
             viewportWidth = window.innerWidth || document.documentElement.clientWidth,
@@ -878,7 +1013,7 @@
                 before = new Date(year, month, 1).getDay(),
                 data   = [],
                 row    = [];
-            setToStartOfDay(now);
+            if (!opts.showTime) setToStartOfDay(now);
             if (opts.firstDay > 0) {
                 before -= opts.firstDay;
                 if (before < 0) {
@@ -902,6 +1037,9 @@
                 row.push(renderDay(1 + (i - before), month, year, isSelected, isToday, isDisabled, isEmpty));
 
                 if (++r === 7) {
+                    if (opts.showWeekNumber) {
+                        row.unshift(renderWeek(i - before, month, year));
+                    }
                     data.push(renderRow(row, opts.isRTL));
                     row = [];
                     r = 0;
