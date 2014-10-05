@@ -130,6 +130,7 @@ function Calendar(div, time) {
 			bubbles:true
 		    }));
 	});
+	div.style.overflow = "visible";
 	event.drawedTiles.push(div);
 	tile.appendChild(div);
     }
@@ -165,11 +166,21 @@ function Calendar(div, time) {
 	tiles.forEach(function(val) {
 	    drawOnTile(val, elem);
 	});
-	elem.drawedTiles['0'].textContent = elem.name;
+	
+	
+	var text = gui.createText(elem.name)
+	
+	if (elem.drawedTiles.length > 1) {
+	   text.classList.add('calendar_text_rotate');
+	}
+	
+	elem.drawedTiles['0'].appendChild(text);
 	elem.drawedTiles['0'].style.borderTopLeftRadius = "4px";
 	elem.drawedTiles['0'].style.borderTopRightRadius = "4px";
 	elem.drawedTiles[elem.drawedTiles.length - 1].style.borderBottomLeftRadius = "4px";
 	elem.drawedTiles[elem.drawedTiles.length - 1].style.borderBottomRightRadius = "4px";
+	
+	
     }
 
     this.add = function(elem) {

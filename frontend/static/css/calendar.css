@@ -44,6 +44,32 @@ and open the template in the editor.
     border-bottom-right-radius: 4px;
 }
 
+.calendar_text_rotate {
+    -webkit-transform: rotate(90deg);
+    -moz-transform: rotate(90deg);
+    -o-transform: rotate(90deg);
+    writing-mode: tb-rl;
+    overflow:visible;
+    display: block;
+    margin-top: 1em;
+}
+
+.clear {
+    clear: both;
+}
+
+.borrowInput {
+    background-color: #ddd;
+    border-radius: 0.1em;
+    padding-left: 2em;
+    padding-top: 1em;
+    padding-bottom: 1em;
+}
+
+.borrowInput label {
+    margin: 0 auto;
+}
+
 .calendar_event {
     height: 100%;
     margin: 0;

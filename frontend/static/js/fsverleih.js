@@ -22,7 +22,7 @@ fsmi.menu = {
     },
     parseHash: function() {
 	var hash = window.location.hash;
-	
+
 	this.MENU.forEach(function(val) {
 	    if (hash === "#" + val.slice(0, -3)) {
 		fsmi.menu.changeTo(val);
@@ -37,6 +37,9 @@ fsmi.verleih = {
     url: "../backend/db.php",
     matInfoCounter: 0,
     calendar: new Calendar('calendar_borrow_div'),
+    fsid: 112,
+    stuff: [],
+    availStuff: [],
     STATES: {
 	INCOMING: {id: 1, text: "Eingegangen"},
 	ACCEPTED: {id: 2, text: "Akzeptiert"},
@@ -266,15 +269,15 @@ fsmi.verleih = {
 	gui.elem('background').style.display = "block";
     },
     rangeSelected: function(event) {
-	
+
 	var start = event.detail.start;
 	var end = event.detail.end;
-	
+
 	if (start.isAfter(event.detail.end)) {
 	    end = event.detail.start;
 	    start = event.detail.end;
 	}
-	
+
 	gui.elem('eventFrom').value = start.format("YYYY-MM-DD HH:mm");
 	gui.elem('eventTo').value = end.format("YYYY-MM-DD HH:mm");
     },
@@ -282,8 +285,23 @@ fsmi.verleih = {
 	fsmi.menu.changeTo(fsmi.menu.MENU[0]);
 	this.getEventsFromServer();
 	this.getStuffFromServer();
+	ajax.asyncGet(this.url + "?get-stuff", this.fillEventStuffList);
 	document.body.addEventListener('calendar_range_selected', fsmi.verleih.rangeSelected);
 	document.body.addEventListener('calendar_event_clicked', fsmi.verleih.event.showEvent);
+    },
+    fillEventStuffList: function(xhr) {
+
+	var stuff = JSON.parse(xhr.response).stuff;
+
+	var list = gui.elem('eventStuffDataList');
+
+	stuff.forEach(function(val) {
+	    fsmi.verleih.availStuff[val.name] = val;
+	    var option = gui.create('option');
+	    option.setAttribute('value', val.name);
+	    list.appendChild(option);
+	});
+
     },
     hideDetails: function() {
 	gui.elem('detail').style.display = "none";
@@ -298,6 +316,70 @@ fsmi.verleih = {
 	gui.elem('addMaterialContent').style.display = "block";
 	this.matInfoCounter = 0;
 	gui.elem('addStuffInfos').innerHTML = "";
+    },
+    saveEvent: function() {
+
+	var contact = {
+	    name: gui.elem("eventPerson").value,
+	    details: [
+		{
+		    key: "Mail",
+		    value: gui.elem('contact_mail')
+		},
+		{
+		    key: "Phone",
+		    value: gui.elem('contact_phone')
+		}
+	    ]
+	}
+
+	var startTime = moment(gui.elem('eventFrom').value, "YYYY-MM-DD HH:MM");
+	var endTime = moment(gui.elem('eventTo').value, "YYYY-MM-DD HH:MM");
+
+	var object = {
+	    contact: contact,
+	    event: {
+		start: startTime,
+		end: endTime,
+		fscontact: fsmi.verleih.fsid,
+		comment: gui.elem("eventComment").value,
+		name: gui.elem('eventName').value,
+		stuff: stuff
+	    }
+
+	};
+
+	ajax.asyncPost(fsmi.verleih.url + "?add-event", 
+	JSON.stringify(object), function(xhr) {
+	    console.log(JSON.parse(xhr.response));
+	});
+
+    },
+    addStuffToEvent: function() {
+
+	var name = gui.elem('eventStuffInput').value;
+
+	var json = fsmi.verleih.availStuff[name];
+	console.log("add");
+	console.log(json);
+	var item = gui.elem("event_stuff_list_item" + json.id)
+
+	if (item) {
+
+	    if (item.stuffCount <= json.count) {
+
+		item.stuffCount++;
+	    }
+	} else {
+
+	    item = gui.create('li');
+	    item.setAttribute('id', "event_stuff_list_item" + json.id);
+	    item.stuffCount = 1;
+	    gui.elem('eventStuffList').appendChild(item);
+
+	}
+	item.textContent = item.stuffCount + "x " + json.name;
+	fsmi.verleih.stuff.push(json);
     },
     addMaterial: function() {
 

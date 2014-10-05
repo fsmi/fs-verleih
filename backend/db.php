@@ -10,15 +10,17 @@ $dbpath = "verleih.db3";
 main();
 
 class STATES {
-	const INCOMING = 1;
-	const ACCEPTED =2;
-	const OUT = 3;
-	const FINISHED = 4;
-	const REJECTED = -1;
+
+    const INCOMING = 1;
+    const ACCEPTED = 2;
+    const OUT = 3;
+    const FINISHED = 4;
+    const REJECTED = -1;
+
 }
 
 function main() {
-    global $db, $output;
+    global $db, $output, $contact;
 
     // init
     $output = Output::getInstance();
@@ -26,6 +28,7 @@ function main() {
     $lists = new Lists();
     $stuff = new Stuff();
     $event = new Event();
+    $contact = new Contact();
 
     // db connection
     if (!$db->connect()) {
@@ -59,6 +62,12 @@ function main() {
 	$lists->stuffDetail();
     } else if (isset($_GET["stuffinfo"])) {
 	$lists->stuffInfo();
+    } else if (isset($_GET["get-stuff"])) {
+	if (!empty($_GET["get-stuff"])) {
+	    $stuff->getByName($_GET["get-stuff"]);
+	} else {
+	    $stuff->getAll();
+	}
     }
 
     if (isset($http_raw) && !empty($http_raw)) {
@@ -66,14 +75,11 @@ function main() {
 	$obj = json_decode($http_raw, true);
 	if (isset($_GET["allow-event"])) {
 	    $event->allow($obj);
-	}
-	if (isset($_GET["reject-event"])) {
+	} else if (isset($_GET["reject-event"])) {
 	    $event->reject($obj);
-	}
-	if (isset($_GET["out-event"])) {
+	} else if (isset($_GET["out-event"])) {
 	    $event->out($obj);
-	}
-	if (isset($_GET["finish-event"])) {
+	} else if (isset($_GET["finish-event"])) {
 	    $event->finish($obj);
 	}
 	if (isset($_GET["add-material"])) {
@@ -81,9 +87,20 @@ function main() {
 	} else if (isset($_GET["delete-material"])) {
 	    $stuff->delete($obj);
 	}
+	if (isset($_GET["add-event"])) {
+	    $event->add($obj);
+	}
     }
 
     $output->write();
+}
+
+class Contact {
+
+    public function genToken() {
+	return uniqid('', true);
+    }
+
 }
 
 class Stuff {
@@ -144,6 +161,34 @@ class Stuff {
 
 	$output->addStatus("delete-stuff", $stmt->errorInfo());
     }
+    
+    public function getByName($name) {
+	global $db, $output;
+	
+	$sql = "SELECT * FROM stuff WHERE name = :name";
+	
+	$param = array(
+	    ":name" => $name
+	);
+	
+	$stmt = $db->query($sql, $param);
+	
+	$output->addStatus("stuff", $stmt->errorInfo());
+	$output->add("stuff", $stmt->fetchAll(PDO::FETCH_ASSOC));
+    }
+    
+    public function getAll() {
+	global $db, $output;
+	
+	$sql = "SELECT * FROM stuff";
+	
+	$param = array();
+	
+	$stmt = $db->query($sql, $param);
+	
+	$output->addStatus("stuff", $stmt->errorInfo());
+	$output->add("stuff", $stmt->fetchAll(PDO::FETCH_ASSOC));
+    }
 
 }
 
@@ -153,19 +198,7 @@ class Lists {
 	global $db, $output;
 
 	$sql = "SELECT * FROM events ORDER BY start ASC";
-	/*
-	  $sql = "SELECT event.id, contact.name AS contact, states.name AS state, start, end, fscontact, comment, group_concat(stuff.name) AS stuff"
-	  . " FROM event "
-	  . "JOIN contact "
-	  . "ON (event.contact = contact.id) "
-	  . "JOIN states "
-	  . "ON (event.state = states.id) "
-	  . "LEFT JOIN event_stuff "
-	  . "ON (event.id = event_stuff.event) "
-	  . "LEFT JOIN stuff "
-	  . "ON (event_stuff.stuff = stuff.id) "
-	  . "ORDER BY start ASC";
-	 */
+
 	$param = array();
 
 	$stmt = $db->query($sql, $param);
@@ -275,7 +308,7 @@ class Event {
 	    return;
 	}
 	$output->addStatus("allow-event", $this->updateState(
-		$obj["id"], STATES::ACCEPTED));
+			$obj["id"], STATES::ACCEPTED));
     }
 
     public function reject($obj) {
@@ -286,9 +319,9 @@ class Event {
 	}
 
 	$output->addStatus("reject-event", $this->updateState(
-		$obj["id"], STATES::REJECTED));
+			$obj["id"], STATES::REJECTED));
     }
-    
+
     public function out($obj) {
 	global $output;
 	if (!isset($obj["id"]) || empty($obj["id"])) {
@@ -297,8 +330,9 @@ class Event {
 	}
 
 	$output->addStatus("out-event", $this->updateState(
-		$obj["id"], STATES::OUT));
+			$obj["id"], STATES::OUT));
     }
+
     public function finish($obj) {
 	global $output;
 	if (!isset($obj["id"]) || empty($obj["id"])) {
@@ -307,18 +341,18 @@ class Event {
 	}
 
 	$output->addStatus("finish-event", $this->updateState(
-		$obj["id"], STATES::FINISHED));
+			$obj["id"], STATES::FINISHED));
     }
 
     public function updateState($id, $state) {
 	global $db;
 	$sql = "UPDATE event SET state = :state WHERE id = :id";
-	
+
 	$param = array(
 	    ":id" => $id,
 	    ":state" => $state,
 	);
-	
+
 	if ($state != -1) {
 	    $sql .= " AND state = :current";
 	    $param[":current"] = ($state - 1);
@@ -327,6 +361,121 @@ class Event {
 	$stmt = $db->query($sql, $param);
 
 	return $stmt->errorInfo();
+    }
+
+    public function add($obj) {
+	global $db, $output, $contact;
+
+	// check for contact token
+	if (isset($obj["contact_token"]) && !empty($obj["contact_token"])) {
+	    $getsql = "SELECT id FROM contact WHERE token = :token";
+	    
+	    $getparam = array(
+		":token" => $obj["contact_token"]
+	    );
+	    
+	    $stmt = $db->query($getsql, $getparam);
+	    
+	    if ($stmt->errorCode() != 0) {
+		return;
+	    }
+	    
+	    
+	} else {
+	    // create contact
+	    $contactsql = "INSERT INTO contact(name, token) "
+		    . "VALUES(:name, :token)";
+
+	    $contactToken = $contact->genToken();
+	    $output->add('contact_token', $contactToken);
+
+	    $contactparam = array(
+		":name" => $obj["contact"]["name"],
+		":token" => $contactToken
+	    );
+
+	    $db->beginTransaction();
+
+	    $stmt = $db->query($contactsql, $contactparam);
+
+	    $output->addStatus("add-contact", $stmt->errorInfo());
+
+	    if ($stmt->errorCode() != 0) {
+		$stmt->rollback();
+		return;
+	    }
+
+	    $contactID = $db->lastInsertID();
+
+	    $detailsql = "INSERT INTO contact_infos(key, value, contact) "
+		    . "VALUES(:key, :value, :contact)";
+
+	    foreach ($obj["contact"]["details"] as $detail) {
+		$detailparam = array(
+		    ":key" => $detail["key"],
+		    ":value" => $detail["value"],
+		    ":contact" => $contactID
+		);
+
+		$stmt = $db->query($detailsql, $detailparam);
+
+
+		if ($stmt->errorCode != 0) {
+		    $output->addStatus("add-detail", $stmt->errorInfo());
+
+		    $db->rollback();
+		    return;
+		}
+	    }
+	}
+
+	// insert event
+	$eventsql = "INSERT INTO event "
+		. "(contact, state, start, end, fscontact, comment, name) "
+		. "VALUES(:contact, :state, :start, :end, :fscontact, :comment, :name)";
+
+	$eventparam = array(
+	    ":contact" => $contactID,
+	    ":state" => 1,
+	    ":start" => $obj["event"]["start"],
+	    ":end" => $obj["event"]["end"],
+	    ":fscontact" => $obj["event"]["fscontact"],
+	    ":comment" => $obj["event"]["comment"],
+	    ":name" => $obj["event"]["name"]
+	);
+
+	$stmt = $db->query($eventsql, $eventparam);
+
+	$output->addStatus("add-event", $stmt->errorInfo());
+
+	if ($stmt->errorCode() != 0) {
+	    $db->rollback();
+	    return;
+	}
+
+
+	$eventid = $db->lastInsertID();
+
+	// insert event stuff
+	$stuffsql = "INSERT INTO event_stuff(event, stuff) VALUES(:event, :stuff)";
+
+	foreach ($obj["event"]["stuff"] as $stuff) {
+
+	    $stuffparam = array(
+		":event" => $eventid,
+		":stuff" => $stuff["id"]
+	    );
+
+	    $stmt = $db->query($stuffsql, $stuffparam);
+
+	    if ($stmt->errorCode() != 0) {
+		$output->addStatus("add-event_stuff", $stmt->errorInfo());
+		$db->rollback();
+		return;
+	    }
+	}
+
+	$db->commit();
     }
 
 }
@@ -394,6 +543,10 @@ class DB {
 	if (!$this->db->commit()) {
 	    $output->addStatus("commit", $this->db->errorInfo());
 	}
+    }
+
+    function rollback() {
+	$this->db->rollback();
     }
 
     function lastInsertID() {

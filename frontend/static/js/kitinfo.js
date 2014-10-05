@@ -100,6 +100,11 @@ var gui = gui || {
     create: function(tag) {
 	return document.createElement(tag);
     },
+    createText: function(content) {
+	var text = gui.create('span');
+	text.textContent = content;
+	return text;
+    },
     createColumn: function(content, id) {
 	var col = this.create('td');
 	col.setAttribute('id', id);

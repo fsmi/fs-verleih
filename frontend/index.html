@@ -13,11 +13,11 @@ and open the template in the editor.
 	<link rel="stylesheet" type="text/css" href="static/css/pikaday.css" />
 	<link rel="stylesheet" type="text/css" href="static/css/calendar.css" />
 	<script src="static/js/kitinfo.js"></script>
-	
+
     </head>
     <body>
 	<div id="background" onclick="fsmi.verleih.hideDetails()"></div>
-	
+
 	<div id="header">
 	    <div id="menubar">
 		<span class="button" onclick="fsmi.menu.changeTo(fsmi.menu.MENU[0])">Übersicht</span>
@@ -28,71 +28,107 @@ and open the template in the editor.
 	    </div>
 	</div>
 	<div id="overviewDiv">
-	<div id="eventList">
-	    <h2>Veranstaltungen</h2>
-	    <table>
-		<thead>
-		    <tr>
-			<th>ID</th>
-			<th>Ausleiher</th>
-			<th>Gegenstände</th>
-			<th>Zeitraum (von - bis)</th>
-			<th>Bearbeitungsstatus</th>
-		    </tr>
-		</thead>
-		<tbody id="eventListBody">
-		    
-		</tbody>
-	    </table>
-	</div>
-	<h2>Ausleihmaterial</h2>
-	<div id="stuffList">
-	    <table>
-		<thead>
-		    <tr>
-			<th>ID</th>
-			<th>Name</th>
-			<th>Anzahl</th>
-		    </tr>
-		</thead>
-		<tbody id="stuffListBody">
-		    
-		</tbody>
-	    </table>
-	</div>
-	
+	    <div id="eventList">
+		<h2>Veranstaltungen</h2>
+
+		<div id="calendar_borrow_div"></div>
+
+		<table>
+		    <thead>
+			<tr>
+			    <th>ID</th>
+			    <th>Ausleiher</th>
+			    <th>Gegenstände</th>
+			    <th>Zeitraum (von - bis)</th>
+			    <th>Bearbeitungsstatus</th>
+			</tr>
+		    </thead>
+		    <tbody id="eventListBody">
+
+		    </tbody>
+		</table>
+
+
+	    </div>
+	    <h2>Ausleihmaterial</h2>
+	    <div id="stuffList">
+		<table>
+		    <thead>
+			<tr>
+			    <th>ID</th>
+			    <th>Name</th>
+			    <th>Anzahl</th>
+			</tr>
+		    </thead>
+		    <tbody id="stuffListBody">
+
+		    </tbody>
+		</table>
+	    </div>
+	    <div id="actionbar">
+		<span class="button" onclick="fsmi.verleih.showMaterialDialog()">Material hinzufügen</span>
+	    </div>
 	</div>
 	<div id="borrowDiv">
 	    <h2>Ausleihen</h2>
 	    <form id="borrowForm">
-		<label for="eventName">Event:<br />
-		    <input type="text" id="eventName" />
-		</label>
-		<label for="eventPerson">Wer: <br />
-		    <input type="text" id="eventPerson" />
-		</label>
-		<label for="eventFrom">Von: <br />
-		    <input type="datetime" id="eventFrom" />
-		</label>
-		<label for="eventTo">Bis: <br />
-		    <input type="datetime" id="eventTo" />
-		</label>
-		<div class="clear"></div>
-		    
-		    <div id="calendar_borrow_div"></div>
+		<div class="borrowInput">
+		    <h3>Allgemein</h3>
+		    <label for="eventName">Name:<br />
+			<input type="text" id="eventName" />
+		    </label>
+		    <label for="eventComment">Kommentar: <br />
+			<input type="text" id="eventComment" />
+		    </label>
+		</div>
+		<div class="borrowInput">
+		    <h3>Angaben zur Person</h3>
+		    <label for="eventPerson">Wer: <br />
+			<input type="text" id="eventPerson" />
+		    </label>
+		    <br />
+		    <label for="contact_mail">Mail: <br />
+			<input type="text" id="contact_mail" />
+		    </label>
+		    <label for="contact_phone">Phone: <br />
+			<input type="text" id="contact_phone" />
+		    </label>
+		</div>
+		<div class="borrowInput">
+		    <h3>Angaben zum Termin</h3>
+		    <label for="eventFrom">Von: <br />
+			<input type="datetime" id="eventFrom" />
+		    </label>
+		    <label for="eventTo">Bis: <br />
+			<input type="datetime" id="eventTo" />
+		    </label>
+		</div>
+		<div class="borrowInput">
+		    <h3>Was soll ausgeliehen werden?</h3>
+		    <label for="eventStuffInput">Stuff: <br />
+			<input type="text" list="eventStuffDataList" id="eventStuffInput">
+			<datalist id="eventStuffDataList"></datalist>
+			<span class="button" onclick="fsmi.verleih.addStuffToEvent()">add</span>
+		    </label>
+		    <ul id="eventStuffList">
+		    </ul>
+		</div>
+		<div class="borrowInput">
+		    <span class="button" onclick="fsmi.verleih.saveEvent()">save</span>
+		</div>
 	    </form>
 	</div>
 	<div id="allowDiv">
-	    
+
 	</div>
 	<div id="giveDiv">
-	    
+
 	</div>
 	<div id="getDiv">
-	    
+
 	</div>
 	<div id="detail">
-	    
+
 	    <div id="detailEventContent" class="detailContent">
 		<label for="detailEvent">Name:
 		    <span id="detailEvent"></span>
@@ -116,7 +152,7 @@ and open the template in the editor.
 		    <span id="detailStatus"></span>
 		</label>
 		<span class="block">Stuff:</span>
-		    <ul id="detailStuffList"></ul>
+		<ul id="detailStuffList"></ul>
 	    </div>
 	    <div id="detailStuffContent" class="detailContent">
 		<label for="detailStuffID">ID:
@@ -167,34 +203,32 @@ and open the template in the editor.
 		    <tbody id="addStuffInfos"></tbody>
 		</table>
 		<div id="addStuffActionBar">
-		<span class="button" onclick="fsmi.verleih.addMaterial()">Material hinzufügen</span>
+		    <span class="button" onclick="fsmi.verleih.addMaterial()">Material hinzufügen</span>
 		</div>
-		
-		</div>
+
+	    </div>
 	    <div id="detailNav">
 		<span id="customDetailNav"></span>
 		<span class="button" onclick="fsmi.verleih.hideDetails()">hide</span>
 	    </div>
 	</div>
-	
-	<div id="actionbar">
-	    <span class="button" onclick="fsmi.verleih.showMaterialDialog()">Material hinzufügen</span>
-	</div>
+
+
 	<script src="static/js/moments.js"></script>
 	<script src="static/js/moment_range.js"></script>
 	<script src="static/js/pickaday.js"></script>
 	<script src="static/js/calendar.js"></script>
 	<script src="static/js/fsverleih.js"></script>
-	
-	
-	
+
+
+
 	<script>
-	    
-	    fsmi.menu.parseHash();
-	    
-	    var pickerFrom = new Pikaday({field: gui.elem('eventFrom'), format: 'YYYY-MM-DD'});
-	    var pickerTo = new Pikaday({field: gui.elem('eventTo'), format: 'YYYY-MM-DD'});
-	    //var calendar = new Calendar("calendar_borrow_div");
+
+		    fsmi.menu.parseHash();
+
+		    var pickerFrom = new Pikaday({field: gui.elem('eventFrom'), format: 'YYYY-MM-DD'});
+		    var pickerTo = new Pikaday({field: gui.elem('eventTo'), format: 'YYYY-MM-DD'});
+		    //var calendar = new Calendar("calendar_borrow_div");
 	</script>
     </body>
 </html>
