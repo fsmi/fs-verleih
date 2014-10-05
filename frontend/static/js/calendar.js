@@ -122,7 +122,14 @@ function Calendar(div, time) {
 	}
 	div.style.background = event.color.toString();
 	div.style.borderColor = event.color.toString();
-
+	div.eventObj = event;
+	div.addEventListener('click', function(evt) {
+	    document.body.dispatchEvent(
+		    new CustomEvent('calendar_event_clicked', {
+			detail: event,
+			bubbles:true
+		    }));
+	});
 	event.drawedTiles.push(div);
 	tile.appendChild(div);
     }

@@ -99,6 +99,13 @@ fsmi.verleih = {
 	    });
 	}
     },
+    event: {
+	showEvent: function(evt) {
+	    console.log(evt);
+	    var event = evt.detail;
+	    fsmi.verleih.detail(event.id);
+	}
+    },
     detail: function(id) {
 	this.getDetails(id);
 	gui.elem('detail').style.display = "block";
@@ -276,6 +283,7 @@ fsmi.verleih = {
 	this.getEventsFromServer();
 	this.getStuffFromServer();
 	document.body.addEventListener('calendar_range_selected', fsmi.verleih.rangeSelected);
+	document.body.addEventListener('calendar_event_clicked', fsmi.verleih.event.showEvent);
     },
     hideDetails: function() {
 	gui.elem('detail').style.display = "none";
