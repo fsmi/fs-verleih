@@ -9,7 +9,7 @@ and open the template in the editor.
 */
 
 .calendar_day {
-    display:inline-table;
+    float: left;
     //height: calc(48 * 2em + 94px);
     width: calc(100% / 8 - 14px);
     text-align: center;
@@ -19,10 +19,29 @@ and open the template in the editor.
 }
 
 .calendar_halfhour {
-    display:inline-block;
     width: calc(100%);
     height: 2em;
     margin: 0;
+    border: solid #ccc 1px;
+}
+
+.calendar_halfhour:hover {
+    background-color: #aaa;
+    border-radius: 2px;
+}
+
+.calendar_selected_halfhour {
+    background-color: #ababab;
+}
+
+.calendar_selected_halfhour:first-child {
+    border-top-left-radius: 2px;
+    border-top-right-radius: 2px;
+}
+
+.calendar_selected_halfhour:last-child {
+    border-bottom-left-radius: 2px;
+    border-bottom-right-radius: 2px;
 }
 
 .calendar_halfhour div {

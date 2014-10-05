@@ -18,6 +18,8 @@ function Calendar(div, time) {
     var displayDays = 7;
     var week = moment(this.time);
     var startTime, endTime;
+    var selectMode = false;
+    var selectedTiles = [];
 
     console.log(week);
 
@@ -79,11 +81,11 @@ function Calendar(div, time) {
     }
 
     function mark() {
-	
+
 	if (!startTime || !endTime) {
 	    return;
 	}
-	
+
 	console.log(startTime.format("YYYY-MM-DD HH:mm")
 		+ " - " + endTime.format("YYYY-MM-DD HH:mm"));
 
@@ -91,10 +93,10 @@ function Calendar(div, time) {
 		'calendar_range_selected', {detail: {
 			start: startTime,
 			end: endTime
-		}, bubbles: true});
+		    }, bubbles: true});
 	document.body.dispatchEvent(event);
     }
-    
+
     function selectDay(day) {
 	console.log(day);
 	startTime = moment(week);
@@ -114,25 +116,170 @@ function Calendar(div, time) {
 	return date;
     }
 
+    function clearSelected() {
+
+	selectedTiles.forEach(function(val) {
+	    console.log(val);
+	    val.classList.remove('calendar_selected_halfhour');
+	});
+	selectedTiles = [];
+    }
+
+    function clearTextSelection() {
+	if (window.getSelection) {
+	    if (window.getSelection().empty) {  // Chrome
+		window.getSelection().empty();
+	    } else if (window.getSelection().removeAllRanges) {  // Firefox
+		window.getSelection().removeAllRanges();
+	    }
+	} else if (document.selection) {  // IE?
+	    document.selection.empty();
+	}
+    }
+
     function mouseUp(id) {
+	selectMode = false;
+
+	clearTextSelection();
+
 	endTime = getTimeFromElement(id);
 	mark();
     }
 
+    function nextTileID(id) {
+
+	var ssplit = id.split('#');
+	var day = parseInt(ssplit[0]);
+	var ssplit2 = ssplit[1].split(':');
+	var hour = parseInt(ssplit2[0]);
+	var minute = parseInt(ssplit2[1]);
+
+	minute++;
+
+	if (minute > 1) {
+	    minute = 0;
+	    hour++;
+
+	    if (hour > 23) {
+		hour = 0;
+		day++;
+	    }
+	    if (day > displayDays - 1) {
+		return "out_of_range";
+	    }
+	}
+
+	return day + "#" + hour + ":" + minute;
+
+    }
+
+    function getTilesBetween(startTileID, endTileID, reverse) {
+
+	var tiles = [];
+	var counter = 0;
+
+	do {
+
+
+	    tiles[counter] = gui.elem('calendar_halfhour_' + startTileID);
+	    tiles[counter].tileID = startTileID;
+	    counter++;
+
+	    startTileID = nextTileID(startTileID);
+
+	    if (startTileID === "out_of_range") {
+		return tiles;
+	    }
+
+	} while (startTileID !== endTileID);
+
+	if (tiles[counter - 1].tileID !== endTileID) {
+	    tiles[counter] = gui.elem('calendar_halfhour_' + endTileID);
+	    tiles[counter].tileID = startTileID;
+	}
+	
+	if (reverse) {
+	    var startTile = tiles[counter];
+	    tiles[counter] = tiles['0'];
+	    tiles['0'] = startTile;
+	}
+
+	return tiles;
+
+    }
+
+    function tileIsAfter(firstTile, secondTile) {
+	var firstTileSplit = firstTile.split('#');
+	var secondTileSplit = secondTile.split('#');
+
+
+	// day
+	if (parseInt(firstTileSplit[0]) < parseInt(secondTileSplit[0])) {
+	    return true;
+	} else if (parseInt(firstTileSplit[0]) > parseInt(secondTileSplit[0])) {
+	    return false;
+	}
+	    firstTileSplit = firstTileSplit[1].split(':');
+	    secondTileSplit = secondTileSplit[1].split(':');
+	
+	// hour
+	if (parseInt(firstTileSplit[0]) < parseInt(secondTileSplit[0])) {
+	    return true;
+	} else if (parseInt(firstTileSplit[0]) > parseInt(secondTileSplit[0])) {
+	    return false;
+	}
+	
+	// minute
+	if (parseInt(firstTileSplit[1]) < parseInt(secondTileSplit[1])) {
+	    return true;
+	} else if (parseInt(firstTileSplit[1]) > parseInt(secondTileSplit[1])) {
+	    return false;
+	}
+	return false;
+    }
+
+    function hover(id) {
+
+	if (selectMode) {
+	    var startTile = selectedTiles['0'];
+	    clearSelected();
+
+	    if (tileIsAfter(startTile.tileID, id)) {
+
+		selectedTiles = getTilesBetween(startTile.tileID, id, 0);
+	    } else {
+		selectedTiles = getTilesBetween(id, startTile.tileID, 1);
+	    }
+
+	    selectedTiles.forEach(function(val) {
+		val.classList.add('calendar_selected_halfhour');
+	    });
+	}
+    }
+
     function mouseDown(id) {
+	clearSelected();
+	selectMode = true;
+	selectedTiles['0'] = gui.elem('calendar_halfhour_' + id);
+	selectedTiles['0'].classList.add('calendar_selected_halfhour');
+	selectedTiles['0'].tileID = id;
 	startTime = getTimeFromElement(id);
     }
 
     function createHalfHour(id, j) {
 	var halfhour = gui.create('div');
+	halfhour.setAttribute('id', 'calendar_halfhour_' + id);
 	halfhour.classList.add('calendar_halfhour');
-	halfhour.classList.add('calendar_halfhour_' + j);
-	halfhour.textContent = "-";
+	//halfhour.classList.add('calendar_halfhour_' + j);
+	halfhour.textContent = "";
 	halfhour.addEventListener('mousedown', function() {
 	    mouseDown(id);
 	});
 	halfhour.addEventListener('mouseup', function() {
 	    mouseUp(id);
+	});
+	halfhour.addEventListener('mouseover', function() {
+	    hover(id);
 	});
 
 	return halfhour;
@@ -209,7 +356,7 @@ function Calendar(div, time) {
     function reload() {
 	init(div);
     }
-    
+
     function setYearMonth(date) {
 	week = moment(date);
 	reload();
@@ -248,7 +395,7 @@ function Calendar(div, time) {
 	    day.addEventListener('click', function(evt) {
 		selectDay(evt.target.valID);
 	    });
-	    
+
 	    header.appendChild(day);
 	}
 
