@@ -19,6 +19,7 @@ function Calendar(div, time) {
     var week = moment(this.time);
     var startTime, endTime;
     var selectMode = false;
+    var selectDayMode = false;
     var selectedTiles = [];
 
     console.log(week);
@@ -379,6 +380,51 @@ function Calendar(div, time) {
 
 	return nav;
     }
+    
+    function mouseDownDay(id) {
+	clearSelected();
+	selectDayMode = true;
+	
+	var startTile = id + "#0:0";
+	var endTile = id + "23:1";
+	selectedTiles['0'] = gui.elem('calendar_halfhour_' + startTile);
+	selectedTiles['0'].classList.add('calendar_selected_halfhour');
+	selectedTiles['0'].tileID = startTile;
+	startTime = getTimeFromElement(startTile);
+	
+	hoverDay(id);
+    }
+    
+    function hoverDay(id) {
+	
+	if (selectDayMode) {
+	    
+	    var tile = id + "#23:1";
+	    
+	    var startTile = selectedTiles['0'];
+	    clearSelected();
+
+	    if (tileIsAfter(startTile.tileID, tile)) {
+
+		selectedTiles = getTilesBetween(startTile.tileID, tile, 0);
+	    } else {
+		selectedTiles = getTilesBetween(tile, startTile.tileID, 1);
+	    }
+
+	    selectedTiles.forEach(function(val) {
+		val.classList.add('calendar_selected_halfhour');
+	    });
+	}
+    }
+    
+    function mouseUpDay(id) {
+	selectDayMode = false;
+	
+	clearTextSelection();
+
+	endTime = getTimeFromElement(id + "#23:1");
+	mark();
+    }
 
     function createHeader() {
 	var header = gui.create('div');
@@ -392,8 +438,14 @@ function Calendar(div, time) {
 	    day.classList.add('calendar_header_day');
 	    day.textContent = days.getName(i) + " (" + moment(week).day(i).format("MM-DD") + ")";
 	    day.valID = i;
-	    day.addEventListener('click', function(evt) {
-		selectDay(evt.target.valID);
+	    day.addEventListener('mousedown', function(evt) {
+		mouseDownDay(evt.target.valID);
+	    });
+	    day.addEventListener('mouseup', function(evt) {
+		mouseUpDay(evt.target.valID)
+	    });
+	    day.addEventListener('mouseover', function(evt) {
+		hoverDay(evt.target.valID);
 	    });
 
 	    header.appendChild(day);
