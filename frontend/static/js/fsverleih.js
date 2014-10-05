@@ -36,6 +36,7 @@ fsmi.verleih = {
     secret: "",
     url: "../backend/db.php",
     matInfoCounter: 0,
+    calendar: new Calendar('calendar_borrow_div'),
     STATES: {
 	INCOMING: {id: 1, text: "Eingegangen"},
 	ACCEPTED: {id: 2, text: "Akzeptiert"},
@@ -158,10 +159,9 @@ fsmi.verleih = {
     fillEvents: function(rawEvents) {
 
 	var events = JSON.parse(rawEvents.response).events;
-	console.log(events);
 	var tbody = gui.elem('eventListBody');
 	events.forEach(function(val) {
-	    console.log(val);
+
 	    var row = gui.create('tr');
 	    row.appendChild(gui.createColumn(val.id, 'event' + val.id));
 	    row.appendChild(gui.createColumn(val.contact));
@@ -178,6 +178,7 @@ fsmi.verleih = {
 	    row.appendChild(detailElem);
 
 	    tbody.appendChild(row);
+	    fsmi.verleih.calendar.add(val);
 	});
     },
     fillStuff: function(xhr) {

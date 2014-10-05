@@ -180,11 +180,13 @@ and open the template in the editor.
 	<div id="actionbar">
 	    <span class="button" onclick="fsmi.verleih.showMaterialDialog()">Material hinzufügen</span>
 	</div>
-	<script src="static/js/fsverleih.js"></script>
 	<script src="static/js/moments.js"></script>
 	<script src="static/js/moment_range.js"></script>
 	<script src="static/js/pickaday.js"></script>
 	<script src="static/js/calendar.js"></script>
+	<script src="static/js/fsverleih.js"></script>
+	
+	
 	
 	<script>
 	    
@@ -192,7 +194,7 @@ and open the template in the editor.
 	    
 	    var pickerFrom = new Pikaday({field: gui.elem('eventFrom'), format: 'YYYY-MM-DD'});
 	    var pickerTo = new Pikaday({field: gui.elem('eventTo'), format: 'YYYY-MM-DD'});
-	    var calendar = new Calendar("calendar_borrow_div");
+	    //var calendar = new Calendar("calendar_borrow_div");
 	</script>
     </body>
 </html>

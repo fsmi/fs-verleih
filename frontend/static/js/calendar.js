@@ -10,20 +10,21 @@ function Calendar(div, time) {
 	return;
     }
 
+    var week;
     if (time) {
-	this.time = moment(time, "X")
+	week = moment(time, "X")
     } else {
-	this.time = moment();
+	week = moment();
     }
     var displayDays = 7;
-    var week = moment(this.time);
+    this.time = week;
+    var weekrange;
     var startTime, endTime;
     var selectMode = false;
     var selectDayMode = false;
     var selectedTiles = [];
-
-    console.log(week);
-
+    var events = [];
+    var colorCounter = 0;
     var days = {
 	MONDAY: {id: 0, name: "Montag"},
 	TUESDAY: {id: 1, name: "Dienstag"},
@@ -58,11 +59,115 @@ function Calendar(div, time) {
     }
 
 
+    function setWeekRange() {
+	weekrange = moment().range(
+	    moment(week).day(0).hour(0).minute(0), moment(week).day(6).hour(23).minute(59));
+    }
+
     this.div = div;
+    function toTileID(time) {
 
+	var minute = time.minute();
+	if (minute >= 30) {
+	    minute = 1;
+	} else {
+	    minute = 0;
+	}
+	return time.day() + "#" + time.hour() + ":" + minute;
+    }
 
-    this.append = function(elem) {
+    function getNextColor() {
 
+	var c = {
+	    hue: colorCounter,
+	    saturation: Math.floor(90 + Math.random() * 10),
+	    lightness: Math.floor(50 + Math.random() * 10),
+	    toString: function() {
+		 return "hsl(" + this.hue + "," 
+			 + this.saturation + "%," 
+			 + this.lightness + "%)";
+	    }
+	};
+	colorCounter = (colorCounter + 20) % 360;
+	return c;
+    }
+    
+    this.redrawEvents = function() {
+	redrawEvents();
+    };
+    
+    function redrawEvents() {
+	colorCounter = 0;
+	
+	events.forEach(function(val) {
+	    draw(val); 
+	});
+    }
+
+    function drawOnTile(tile, event) {
+	var div = gui.create('div');
+	div.classList.add('calendar_event_' + event.id);
+	div.classList.add('calendar_event');
+	var eventTiles = tile.querySelectorAll('div');
+	if (eventTiles.length !== 0) {
+	    var width = "calc(100% / "
+		    + (eventTiles.length + 1)
+		    + " - " + (eventTiles.length + 1) * 1 + "px)";
+	    [].forEach.call(eventTiles, function(val) {
+		val.style.width = width;
+	    });
+	    div.style.width = width;
+	} else {
+	    div.style.width = "calc(100% - 2px)";
+	}
+	div.style.background = event.color.toString();
+	div.style.borderColor = event.color.toString();
+
+	event.drawedTiles.push(div);
+	tile.appendChild(div);
+    }
+
+    function draw(elem) {
+	var start = moment(elem.start, "X");
+	var end = moment(elem.end, "X");
+	var w = moment(week);
+	
+	if (end.isBefore(w.day(0).hour(0).minute(0))) {
+	    console.log("not in week");
+	    console.log(end.format());
+	    return;
+	}
+
+	if (start.isAfter(w.day(6).hour(23).minute(59))) {
+	    console.log("not in week");
+	    console.log(end.format());
+	    return;
+	}
+
+	if (!weekrange.contains(start)) {
+	    console.log("set start to first tile");
+	    start = moment(w).day(0).hour(0).minute(0);
+	}
+	if (!weekrange.contains(end)) {
+	    console.log("set end to last tile");
+	    end = moment(w).day(6).hour(23).minute(30);
+	}
+	var tiles = getTilesBetween(toTileID(start), toTileID(end));
+	elem.drawedTiles = [];
+	elem.color = getNextColor().toString();
+	tiles.forEach(function(val) {
+	    drawOnTile(val, elem);
+	});
+	elem.drawedTiles['0'].textContent = elem.name;
+	elem.drawedTiles['0'].style.borderTopLeftRadius = "4px";
+	elem.drawedTiles['0'].style.borderTopRightRadius = "4px";
+	elem.drawedTiles[elem.drawedTiles.length - 1].style.borderBottomLeftRadius = "4px";
+	elem.drawedTiles[elem.drawedTiles.length - 1].style.borderBottomRightRadius = "4px";
+    }
+
+    this.add = function(elem) {
+	events[elem.id] = elem;
+	draw(elem);
     };
     this.remove = function(elem) {
 
@@ -70,15 +175,12 @@ function Calendar(div, time) {
     this.createElement = function(title, start, end) {
 
 	var divs = [];
-
 	return {
 	    elemente: divs,
 	    title: title,
 	    start: start,
 	    end: end
 	};
-
-
     }
 
     function mark() {
@@ -89,21 +191,12 @@ function Calendar(div, time) {
 
 	console.log(startTime.format("YYYY-MM-DD HH:mm")
 		+ " - " + endTime.format("YYYY-MM-DD HH:mm"));
-
 	var event = new CustomEvent(
 		'calendar_range_selected', {detail: {
 			start: startTime,
 			end: endTime
 		    }, bubbles: true});
 	document.body.dispatchEvent(event);
-    }
-
-    function selectDay(day) {
-	console.log(day);
-	startTime = moment(week);
-	startTime.day(day).hour(0).minute(0);
-	endTime = moment(startTime).hour(23).minute(59);
-	mark();
     }
 
     function getTimeFromElement(id) {
@@ -120,7 +213,6 @@ function Calendar(div, time) {
     function clearSelected() {
 
 	selectedTiles.forEach(function(val) {
-	    console.log(val);
 	    val.classList.remove('calendar_selected_halfhour');
 	});
 	selectedTiles = [];
@@ -140,9 +232,7 @@ function Calendar(div, time) {
 
     function mouseUp(id) {
 	selectMode = false;
-
 	clearTextSelection();
-
 	endTime = getTimeFromElement(id);
 	mark();
     }
@@ -154,13 +244,10 @@ function Calendar(div, time) {
 	var ssplit2 = ssplit[1].split(':');
 	var hour = parseInt(ssplit2[0]);
 	var minute = parseInt(ssplit2[1]);
-
 	minute++;
-
 	if (minute > 1) {
 	    minute = 0;
 	    hour++;
-
 	    if (hour > 23) {
 		hour = 0;
 		day++;
@@ -171,34 +258,32 @@ function Calendar(div, time) {
 	}
 
 	return day + "#" + hour + ":" + minute;
-
     }
 
     function getTilesBetween(startTileID, endTileID, reverse) {
 
 	var tiles = [];
 	var counter = 0;
-
-	do {
-
-
-	    tiles[counter] = gui.elem('calendar_halfhour_' + startTileID);
-	    tiles[counter].tileID = startTileID;
-	    counter++;
+	tiles[counter] = gui.elem('calendar_halfhour_' + startTileID);
+	tiles[counter].tileID = startTileID;
+	counter++;
+	while (startTileID !== endTileID) {
 
 	    startTileID = nextTileID(startTileID);
-
 	    if (startTileID === "out_of_range") {
 		return tiles;
 	    }
 
-	} while (startTileID !== endTileID);
+	    tiles[counter] = gui.elem('calendar_halfhour_' + startTileID);
+	    tiles[counter].tileID = startTileID;
+	    counter++;
+	}
 
 	if (tiles[counter - 1].tileID !== endTileID) {
 	    tiles[counter] = gui.elem('calendar_halfhour_' + endTileID);
 	    tiles[counter].tileID = startTileID;
 	}
-	
+
 	if (reverse) {
 	    var startTile = tiles[counter];
 	    tiles[counter] = tiles['0'];
@@ -206,31 +291,27 @@ function Calendar(div, time) {
 	}
 
 	return tiles;
-
     }
 
     function tileIsAfter(firstTile, secondTile) {
 	var firstTileSplit = firstTile.split('#');
 	var secondTileSplit = secondTile.split('#');
-
-
 	// day
 	if (parseInt(firstTileSplit[0]) < parseInt(secondTileSplit[0])) {
 	    return true;
 	} else if (parseInt(firstTileSplit[0]) > parseInt(secondTileSplit[0])) {
 	    return false;
 	}
-	    firstTileSplit = firstTileSplit[1].split(':');
-	    secondTileSplit = secondTileSplit[1].split(':');
-	
+	firstTileSplit = firstTileSplit[1].split(':');
+	secondTileSplit = secondTileSplit[1].split(':');
 	// hour
 	if (parseInt(firstTileSplit[0]) < parseInt(secondTileSplit[0])) {
 	    return true;
 	} else if (parseInt(firstTileSplit[0]) > parseInt(secondTileSplit[0])) {
 	    return false;
 	}
-	
-	// minute
+
+// minute
 	if (parseInt(firstTileSplit[1]) < parseInt(secondTileSplit[1])) {
 	    return true;
 	} else if (parseInt(firstTileSplit[1]) > parseInt(secondTileSplit[1])) {
@@ -244,7 +325,6 @@ function Calendar(div, time) {
 	if (selectMode) {
 	    var startTile = selectedTiles['0'];
 	    clearSelected();
-
 	    if (tileIsAfter(startTile.tileID, id)) {
 
 		selectedTiles = getTilesBetween(startTile.tileID, id, 0);
@@ -282,7 +362,6 @@ function Calendar(div, time) {
 	halfhour.addEventListener('mouseover', function() {
 	    hover(id);
 	});
-
 	return halfhour;
     }
 
@@ -291,7 +370,6 @@ function Calendar(div, time) {
 	var day = gui.create('div');
 	day.classList.add('calendar_day');
 	day.setAttribute('id', 'calendar_day' + id);
-
 	for (var i = 0; i < 24; i++) {
 
 	    for (var j = 0; j < 2; j++) {
@@ -309,7 +387,6 @@ function Calendar(div, time) {
 	block.classList.add('calendar_timeline_halfhour_' + mm);
 	block.setAttribute('id', "calendar_timeline_hh_" + hh + ":" + mm);
 	var span = gui.create('div');
-
 	if (hh < 10) {
 	    hh = "0" + hh;
 	}
@@ -319,18 +396,15 @@ function Calendar(div, time) {
 
 	span.textContent = hh + ":" + mm;
 	block.appendChild(span);
-
 	return block;
     }
 
     function setWeekPlusDays(days) {
 	week = moment(week).day(days);
-	console.log(week.format("MM-DD"));
     }
 
     function actionBack() {
 	setWeekPlusDays(-7);
-
 	init(div);
     }
 
@@ -344,7 +418,6 @@ function Calendar(div, time) {
 	var timeline = gui.create('div');
 	timeline.classList.add('calendar_day');
 	timeline.setAttribute('id', "calendar_timeline");
-
 	for (var i = 0; i < 24; i++) {
 	    for (var j = 0; j < 2; j++) {
 		timeline.appendChild(createTimeLineHalfHour(i, 30 * j));
@@ -366,44 +439,36 @@ function Calendar(div, time) {
     function createNav() {
 	var nav = gui.create('div');
 	nav.setAttribute('id', 'calendar_nav');
-
 	nav.appendChild(gui.createButton("<", actionBack));
 	var dateButton = gui.createButton(week.format("YYYY-MM"), null);
-
 	new Pikaday({
 	    field: dateButton,
 	    onSelect: setYearMonth
 	});
-
 	nav.appendChild(dateButton);
 	nav.appendChild(gui.createButton(">", actionForward));
-
 	return nav;
     }
-    
+
     function mouseDownDay(id) {
 	clearSelected();
 	selectDayMode = true;
-	
 	var startTile = id + "#0:0";
 	var endTile = id + "23:1";
 	selectedTiles['0'] = gui.elem('calendar_halfhour_' + startTile);
 	selectedTiles['0'].classList.add('calendar_selected_halfhour');
 	selectedTiles['0'].tileID = startTile;
 	startTime = getTimeFromElement(startTile);
-	
 	hoverDay(id);
     }
-    
+
     function hoverDay(id) {
-	
+
 	if (selectDayMode) {
-	    
+
 	    var tile = id + "#23:1";
-	    
 	    var startTile = selectedTiles['0'];
 	    clearSelected();
-
 	    if (tileIsAfter(startTile.tileID, tile)) {
 
 		selectedTiles = getTilesBetween(startTile.tileID, tile, 0);
@@ -416,12 +481,10 @@ function Calendar(div, time) {
 	    });
 	}
     }
-    
+
     function mouseUpDay(id) {
 	selectDayMode = false;
-	
 	clearTextSelection();
-
 	endTime = getTimeFromElement(id + "#23:1");
 	mark();
     }
@@ -429,9 +492,7 @@ function Calendar(div, time) {
     function createHeader() {
 	var header = gui.create('div');
 	header.setAttribute('id', "calendar_header");
-
 	header.appendChild(createNav());
-
 	for (var i = 0; i < 7; i++) {
 
 	    var day = gui.create('div');
@@ -447,7 +508,6 @@ function Calendar(div, time) {
 	    day.addEventListener('mouseover', function(evt) {
 		hoverDay(evt.target.valID);
 	    });
-
 	    header.appendChild(day);
 	}
 
@@ -455,21 +515,22 @@ function Calendar(div, time) {
     }
 
     function init(div) {
+	
+	setWeekRange();
+	
 	var elem = gui.elem(div);
 	elem.innerHTML = "";
-
 	elem.appendChild(createHeader());
-
 	var content = gui.create('div');
 	content.setAttribute('id', "calendar_content");
-
 	content.appendChild(createTimeline());
-
 	for (var i = 0; i < displayDays; i++) {
 	    content.appendChild(createDay(i));
 	}
 	elem.appendChild(content);
-
+	
+	
+	redrawEvents();
     }
 
     init(div);
