@@ -549,6 +549,8 @@ function Calendar(div, time) {
 	
 	
 	redrawEvents();
+	
+	gui.elem("calendar_halfhour_" + toTileID(week)).scrollIntoView();
     }
 
     init(div);
