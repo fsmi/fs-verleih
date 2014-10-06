@@ -49,6 +49,8 @@ and open the template in the editor.
     -moz-transform: rotate(90deg);
     -o-transform: rotate(90deg);
     writing-mode: tb-rl;
+    transform-origin: bottom;
+    font-weight: bold;
     overflow:visible;
     display: block;
     margin-top: 1em;
@@ -56,18 +58,6 @@ and open the template in the editor.
 
 .clear {
     clear: both;
-}
-
-.borrowInput {
-    background-color: #ddd;
-    border-radius: 0.1em;
-    padding-left: 2em;
-    padding-top: 1em;
-    padding-bottom: 1em;
-}
-
-.borrowInput label {
-    margin: 0 auto;
 }
 
 .calendar_event {

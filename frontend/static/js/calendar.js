@@ -88,7 +88,7 @@ function Calendar(div, time) {
 			 + this.lightness + "%)";
 	    }
 	};
-	colorCounter = (colorCounter + 20) % 360;
+	colorCounter = (colorCounter + 50) % 360;
 	return c;
     }
     
@@ -472,7 +472,6 @@ function Calendar(div, time) {
 	clearSelected();
 	selectDayMode = true;
 	var startTile = id + "#0:0";
-	var endTile = id + "23:1";
 	selectedTiles['0'] = gui.elem('calendar_halfhour_' + startTile);
 	selectedTiles['0'].classList.add('calendar_selected_halfhour');
 	selectedTiles['0'].tileID = startTile;
