@@ -97,8 +97,20 @@ h2 {
     padding: 0;
 }
 
+#allowDivEventDetails span {
+    display:block;
+}
+
 #detailEventContent {
     display: none;
+}
+
+.center {
+    margin: 0 auto;
+}
+
+.spacer {
+    padding: 10%;
 }
 
 #detailNav {

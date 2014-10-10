@@ -120,141 +120,158 @@ and open the template in the editor.
 	    </form>
 	</div>
 	<div id="allowDiv">
-
-	</div>
-	<div id="giveDiv">
-
-	</div>
-	<div id="getDiv">
-
-	</div>
-	<div id="detail">
-
-	    <div id="detailEventContent" class="detailContent">
-
-		<label for="detailID">ID:
-		    <span id="detailID"></span>
-		</label>
-		<br />
-		<label for="detailEvent">Name:
-		    <span id="detailEvent"></span>
-		</label>
-
-
-		<br />
-		<label for="detailComment">Kommentar:
-		    <span id="detailComment"></span>
-		</label>
-		<br />
-		<label for="detailFSContact">Fachschaftskontakt:
-		    <span id="detailFSContact"></span>
-		</label>
-		<br />
-		<label for="detailContect">Kontakt:
-		    <span id="detailContact"></span>
-		</label>
-		<br />
-		<label for="detailTime">Zeitraum:
-		    <span id="detailTime"></span>
-		</label>
-		<br />
-		<label for="detailStatus">Status:
-		    <span id="detailStatus"></span>
-		</label>
-		<br />
-		<span class="block">Stuff:</span>
-		<ul id="detailStuffList"></ul>
+	    <div class="borrowInput">
+		<select id="allowEventSelector" onchange="fsmi.verleih.allowSelectorChange()">
+		</select>
 	    </div>
-	    <div id="detailStuffContent" class="detailContent">
-		<label for="detailStuffID">ID:
-		    <span id="detailStuffID"></span>
-		</label>
-		<br />
-		<label id="detailStuffName">Name:
-		    <span id="detailStuffName"></span>
-		</label>
-		<br />
-		<label for="detailStuffInternPrice">Interner Preis:
-		    <span id="detailStuffInternPrice"></span>
-		</label>
-		<br />
-		<label for="detailStuffExternPrice">Externer Preis:
-		    <span id="detailStuffExternPrice">
-		    </span>
-		</label>
-		<br />
-		<label for="detailStuffCOunt">Anzahl:
-		    <span id="detailStuffCount"></span>
-		</label>
-		<br />
-		<span>Infos:</span>
-		<table>
-		    <tbody id="detailStuffInfos"></tbody>
-		</table>
+	    <div id="allowDivEventDetails" class="borrowInput">
+		
 	    </div>
-	    <div id="addMaterialContent" class="detailContent">
-		<h3>Material hinzufügen</h3>
-		<label for="addStuffName">Name: 
-		    <input type="text" id="addStuffName" />
-		</label>
-		<label for="addStuffInternPrice">Interner Preis:
-		    <input type="text" id="addStuffInternPrice" />
-		</label>
-		<label for="addStuffExternPrice">Externer Preis:
-		    <input type="text" id="addStuffExternPrice" />
-		</label>
-		<label for="addStuffCount">Anzahl:
-		    <input type="text" id="addStuffCount" />
-		</label>
-		<span>Infos:</span>
-		<table>
-		    <thead>
-			<tr>
-			    <th>Key</th>
-			    <th>Value</th>
-			    <th>Type</th>
-			    <th><span class="button" onclick="fsmi.verleih.addInfoRow()">Info hinzufügen</span></th>
-			</tr>
-		    </thead>
-		    <tbody id="addStuffInfos"></tbody>
-		</table>
-		<div id="addStuffActionBar">
-		    <span class="button" onclick="fsmi.verleih.addMaterial()">Material hinzufügen</span>
+	    <div class="borrowInput">
+		<div class="center">
+		<span class="button" onclick="fsmi.verleih.selectorEvent(1)">
+		    Ja
+		</span>
+		<span class="spacer"></span>
+		<span class="button" onclick="fsmi.verleih.selectorEvent(0)">
+		    Nein
+		</span>
 		</div>
+	    </div>
+    </div>
+    <div id="giveDiv">
 
-	    </div>
-	    <div id="detailNav">
-		<span id="customDetailNav"></span>
-		<span class="button" onclick="fsmi.verleih.hideDetails()">hide</span>
-	    </div>
+    </div>
+    <div id="getDiv">
+
+    </div>
+    <div id="detail">
+
+	<div id="detailEventContent" class="detailContent">
+
+	    <label for="detailID">ID:
+		<span id="detailID"></span>
+	    </label>
+	    <br />
+	    <label for="detailEvent">Name:
+		<span id="detailEvent"></span>
+	    </label>
+
+
+	    <br />
+	    <label for="detailComment">Kommentar:
+		<span id="detailComment"></span>
+	    </label>
+	    <br />
+	    <label for="detailFSContact">Fachschaftskontakt:
+		<span id="detailFSContact"></span>
+	    </label>
+	    <br />
+	    <label for="detailContect">Kontakt:
+		<span id="detailContact"></span>
+	    </label>
+	    <br />
+	    <label for="detailTime">Zeitraum:
+		<span id="detailTime"></span>
+	    </label>
+	    <br />
+	    <label for="detailStatus">Status:
+		<span id="detailStatus"></span>
+	    </label>
+	    <br />
+	    <span class="block">Stuff:</span>
+	    <ul id="detailStuffList"></ul>
 	</div>
+	<div id="detailStuffContent" class="detailContent">
+	    <label for="detailStuffID">ID:
+		<span id="detailStuffID"></span>
+	    </label>
+	    <br />
+	    <label id="detailStuffName">Name:
+		<span id="detailStuffName"></span>
+	    </label>
+	    <br />
+	    <label for="detailStuffInternPrice">Interner Preis:
+		<span id="detailStuffInternPrice"></span>
+	    </label>
+	    <br />
+	    <label for="detailStuffExternPrice">Externer Preis:
+		<span id="detailStuffExternPrice">
+		</span>
+	    </label>
+	    <br />
+	    <label for="detailStuffCOunt">Anzahl:
+		<span id="detailStuffCount"></span>
+	    </label>
+	    <br />
+	    <span>Infos:</span>
+	    <table>
+		<tbody id="detailStuffInfos"></tbody>
+	    </table>
+	</div>
+	<div id="addMaterialContent" class="detailContent">
+	    <h3>Material hinzufügen</h3>
+	    <label for="addStuffName">Name: 
+		<input type="text" id="addStuffName" />
+	    </label>
+	    <label for="addStuffInternPrice">Interner Preis:
+		<input type="text" id="addStuffInternPrice" />
+	    </label>
+	    <label for="addStuffExternPrice">Externer Preis:
+		<input type="text" id="addStuffExternPrice" />
+	    </label>
+	    <label for="addStuffCount">Anzahl:
+		<input type="text" id="addStuffCount" />
+	    </label>
+	    <span>Infos:</span>
+	    <table>
+		<thead>
+		    <tr>
+			<th>Key</th>
+			<th>Value</th>
+			<th>Type</th>
+			<th><span class="button" onclick="fsmi.verleih.addInfoRow()">Info hinzufügen</span></th>
+		    </tr>
+		</thead>
+		<tbody id="addStuffInfos"></tbody>
+	    </table>
+	    <div id="addStuffActionBar">
+		<span class="button" onclick="fsmi.verleih.addMaterial()">Material hinzufügen</span>
+	    </div>
+
+	</div>
+	<div id="detailNav">
+	    <span id="customDetailNav"></span>
+	    <span class="button" onclick="fsmi.verleih.hideDetails()">hide</span>
+	</div>
+    </div>
 
 
-	<script src="static/js/moments.js"></script>
-	<script src="static/js/moment_range.js"></script>
-	<script src="static/js/pickaday.js"></script>
-	<script src="static/js/calendar.js"></script>
-	<script src="static/js/fsverleih.js"></script>
+    <script src="static/js/moments.js"></script>
+    <script src="static/js/moment_range.js"></script>
+    <script src="static/js/pickaday.js"></script>
+    <script src="static/js/calendar.js"></script>
+    <script src="static/js/fsverleih.js"></script>
 
 
 
-	<script>
+    <script>
 
-		    fsmi.menu.parseHash();
+		fsmi.menu.parseHash();
 
-		    var pickerFrom = new Pikaday({
-			field: gui.elem('eventFrom'),
-			showTime: true,
-			show24hour: true,
-			format: 'YYYY-MM-DD HH:mm'
-		    });
-		    var pickerTo = new Pikaday({
-			field: gui.elem('eventTo'),
-			showTime: true,
-			use24hour: true,
-			format: 'YYYY-MM-DD HH:mm'
-		    });
-		    //var calendar = new Calendar("calendar_borrow_div");
-	</script>
-    </body>
+		var pickerFrom = new Pikaday({
+		    field: gui.elem('eventFrom'),
+		    showTime: true,
+		    use24hour: true,
+		    format: 'YYYY-MM-DD HH:mm'
+		});
+		var pickerTo = new Pikaday({
+		    field: gui.elem('eventTo'),
+		    showTime: true,
+		    use24hour: true,
+		    format: 'YYYY-MM-DD HH:mm'
+		});
+		//var calendar = new Calendar("calendar_borrow_div");
+    </script>
+</body>
 </html>

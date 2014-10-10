@@ -100,6 +100,11 @@ var gui = gui || {
     create: function(tag) {
 	return document.createElement(tag);
     },
+    /**
+     * creates a span object with the given content
+     * @param {String} the content of the span
+     * @returns {Node span}
+     */
     createText: function(content) {
 	var text = gui.create('span');
 	text.textContent = content;

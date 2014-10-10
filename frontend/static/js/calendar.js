@@ -4,6 +4,8 @@
  * and open the template in the editor.
  */
 function Calendar(div, time) {
+    "use strict";
+    var self = this;
 
     if (!moment) {
 	console.log("we want moment.js");
@@ -12,11 +14,12 @@ function Calendar(div, time) {
 
     var week;
     if (time) {
-	week = moment(time, "X")
+	week = moment(time, "X");
     } else {
 	week = moment();
     }
     var displayDays = 7;
+
     this.time = week;
     var weekrange;
     var startTime, endTime;
@@ -33,7 +36,7 @@ function Calendar(div, time) {
 	FRIDAY: {id: 4, name: "Freitag"},
 	SATURDAY: {id: 5, name: "Samstag"},
 	SUNDAY: {id: 6, name: "Sonntag"},
-	getElem: function(id) {
+	getElem: function (id) {
 	    switch (id) {
 		case this.MONDAY.id:
 		    return this.MONDAY;
@@ -53,15 +56,15 @@ function Calendar(div, time) {
 		    return null;
 	    }
 	},
-	getName: function(id) {
+	getName: function (id) {
 	    return this.getElem(id).name;
 	}
-    }
+    };
 
 
     function setWeekRange() {
 	weekrange = moment().range(
-	    moment(week).day(0).hour(0).minute(0), moment(week).day(6).hour(23).minute(59));
+		moment(week).day(0).hour(0).minute(0), moment(week).day(6).hour(23).minute(59));
     }
 
     this.div = div;
@@ -82,25 +85,25 @@ function Calendar(div, time) {
 	    hue: colorCounter,
 	    saturation: Math.floor(90 + Math.random() * 10),
 	    lightness: Math.floor(50 + Math.random() * 10),
-	    toString: function() {
-		 return "hsl(" + this.hue + "," 
-			 + this.saturation + "%," 
-			 + this.lightness + "%)";
+	    toString: function () {
+		return "hsl(" + this.hue + ","
+			+ this.saturation + "%,"
+			+ this.lightness + "%)";
 	    }
 	};
 	colorCounter = (colorCounter + 50) % 360;
 	return c;
     }
-    
-    this.redrawEvents = function() {
+
+    this.redrawEvents = function () {
 	redrawEvents();
     };
-    
+
     function redrawEvents() {
 	colorCounter = 0;
-	
-	events.forEach(function(val) {
-	    draw(val); 
+
+	events.forEach(function (val) {
+	    draw(val);
 	});
     }
 
@@ -113,7 +116,7 @@ function Calendar(div, time) {
 	    var width = "calc(100% / "
 		    + (eventTiles.length + 1)
 		    + " - " + (eventTiles.length + 1) * 1 + "px)";
-	    [].forEach.call(eventTiles, function(val) {
+	    [].forEach.call(eventTiles, function (val) {
 		val.style.width = width;
 	    });
 	    div.style.width = width;
@@ -123,11 +126,11 @@ function Calendar(div, time) {
 	div.style.background = event.color.toString();
 	div.style.borderColor = event.color.toString();
 	div.eventObj = event;
-	div.addEventListener('click', function(evt) {
+	div.addEventListener('click', function (evt) {
 	    document.body.dispatchEvent(
 		    new CustomEvent('calendar_event_clicked', {
 			detail: event,
-			bubbles:true
+			bubbles: true
 		    }));
 	});
 	div.style.overflow = "visible";
@@ -139,7 +142,7 @@ function Calendar(div, time) {
 	var start = moment(elem.start, "X");
 	var end = moment(elem.end, "X");
 	var w = moment(week);
-	
+
 	if (end.isBefore(w.day(0).hour(0).minute(0))) {
 	    console.log("not in week");
 	    console.log(end.format());
@@ -163,34 +166,36 @@ function Calendar(div, time) {
 	var tiles = getTilesBetween(toTileID(start), toTileID(end));
 	elem.drawedTiles = [];
 	elem.color = getNextColor().toString();
-	tiles.forEach(function(val) {
+	tiles.forEach(function (val) {
 	    drawOnTile(val, elem);
 	});
-	
-	
+
+
 	var text = gui.createText(elem.name)
-	
+
 	if (elem.drawedTiles.length > 1) {
-	   text.classList.add('calendar_text_rotate');
+	    text.classList.add('calendar_text_rotate');
 	}
-	
+
 	elem.drawedTiles['0'].appendChild(text);
 	elem.drawedTiles['0'].style.borderTopLeftRadius = "4px";
 	elem.drawedTiles['0'].style.borderTopRightRadius = "4px";
 	elem.drawedTiles[elem.drawedTiles.length - 1].style.borderBottomLeftRadius = "4px";
 	elem.drawedTiles[elem.drawedTiles.length - 1].style.borderBottomRightRadius = "4px";
-	
-	
+
+
     }
 
-    this.add = function(elem) {
-	events[elem.id] = elem;
+    this.add = function (elem) {
+	if (elem.state !== -1) {
+	    events[elem.id] = elem;
+	}
 	draw(elem);
     };
-    this.remove = function(elem) {
+    this.remove = function (elem) {
 
     };
-    this.createElement = function(title, start, end) {
+    this.createElement = function (title, start, end) {
 
 	var divs = [];
 	return {
@@ -199,6 +204,17 @@ function Calendar(div, time) {
 	    start: start,
 	    end: end
 	};
+    };
+
+    this.clear = function () {
+
+	colorCounter = 0;
+
+	var tiles = document.querySelectorAll(".calendar_halfhour");
+
+	[].forEach.call(tiles, function (val) {
+	    val.innerHTML = "";
+	});
     }
 
     function mark() {
@@ -230,8 +246,12 @@ function Calendar(div, time) {
 
     function clearSelected() {
 
-	selectedTiles.forEach(function(val) {
-	    val.classList.remove('calendar_selected_halfhour');
+	console.log(selectedTiles);
+
+	selectedTiles.forEach(function (val) {
+	    if (val) {
+		val.classList.remove('calendar_selected_halfhour');
+	    }
 	});
 	selectedTiles = [];
     }
@@ -303,8 +323,8 @@ function Calendar(div, time) {
 	}
 
 	if (reverse) {
-	    var startTile = tiles[counter];
-	    tiles[counter] = tiles['0'];
+	    var startTile = tiles[counter - 1];
+	    tiles[counter - 1] = tiles['0'];
 	    tiles['0'] = startTile;
 	}
 
@@ -344,14 +364,17 @@ function Calendar(div, time) {
 	    var startTile = selectedTiles['0'];
 	    clearSelected();
 	    if (tileIsAfter(startTile.tileID, id)) {
-
 		selectedTiles = getTilesBetween(startTile.tileID, id, 0);
+		console.log(selectedTiles);
 	    } else {
 		selectedTiles = getTilesBetween(id, startTile.tileID, 1);
+		console.log(selectedTiles);
 	    }
 
-	    selectedTiles.forEach(function(val) {
-		val.classList.add('calendar_selected_halfhour');
+	    selectedTiles.forEach(function (val) {
+		if (val) {
+		    val.classList.add('calendar_selected_halfhour');
+		}
 	    });
 	}
     }
@@ -371,13 +394,13 @@ function Calendar(div, time) {
 	halfhour.classList.add('calendar_halfhour');
 	//halfhour.classList.add('calendar_halfhour_' + j);
 	halfhour.textContent = "";
-	halfhour.addEventListener('mousedown', function() {
+	halfhour.addEventListener('mousedown', function () {
 	    mouseDown(id);
 	});
-	halfhour.addEventListener('mouseup', function() {
+	halfhour.addEventListener('mouseup', function () {
 	    mouseUp(id);
 	});
-	halfhour.addEventListener('mouseover', function() {
+	halfhour.addEventListener('mouseover', function () {
 	    hover(id);
 	});
 	return halfhour;
@@ -493,7 +516,7 @@ function Calendar(div, time) {
 		selectedTiles = getTilesBetween(tile, startTile.tileID, 1);
 	    }
 
-	    selectedTiles.forEach(function(val) {
+	    selectedTiles.forEach(function (val) {
 		val.classList.add('calendar_selected_halfhour');
 	    });
 	}
@@ -516,13 +539,13 @@ function Calendar(div, time) {
 	    day.classList.add('calendar_header_day');
 	    day.textContent = days.getName(i) + " (" + moment(week).day(i).format("MM-DD") + ")";
 	    day.valID = i;
-	    day.addEventListener('mousedown', function(evt) {
+	    day.addEventListener('mousedown', function (evt) {
 		mouseDownDay(evt.target.valID);
 	    });
-	    day.addEventListener('mouseup', function(evt) {
+	    day.addEventListener('mouseup', function (evt) {
 		mouseUpDay(evt.target.valID)
 	    });
-	    day.addEventListener('mouseover', function(evt) {
+	    day.addEventListener('mouseover', function (evt) {
 		hoverDay(evt.target.valID);
 	    });
 	    header.appendChild(day);
@@ -532,9 +555,9 @@ function Calendar(div, time) {
     }
 
     function init(div) {
-	
+
 	setWeekRange();
-	
+
 	var elem = gui.elem(div);
 	elem.innerHTML = "";
 	elem.appendChild(createHeader());
@@ -545,10 +568,10 @@ function Calendar(div, time) {
 	    content.appendChild(createDay(i));
 	}
 	elem.appendChild(content);
-	
-	
+
+
 	redrawEvents();
-	
+
 	gui.elem("calendar_halfhour_" + toTileID(week)).scrollIntoView();
     }
 

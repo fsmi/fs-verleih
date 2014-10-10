@@ -14,16 +14,16 @@ fsmi.menu = {
 	"giveDiv",
 	"getDiv"
     ],
-    changeTo: function(elem) {
-	this.MENU.forEach(function(val) {
+    changeTo: function (elem) {
+	this.MENU.forEach(function (val) {
 	    gui.elem(val).style.display = "none";
 	});
 	gui.elem(elem).style.display = "block";
     },
-    parseHash: function() {
+    parseHash: function () {
 	var hash = window.location.hash;
 
-	this.MENU.forEach(function(val) {
+	this.MENU.forEach(function (val) {
 	    if (hash === "#" + val.slice(0, -3)) {
 		fsmi.menu.changeTo(val);
 		return;
@@ -40,13 +40,14 @@ fsmi.verleih = {
     fsid: 112,
     stuff: [],
     availStuff: [],
+    events: [],
     STATES: {
 	INCOMING: {id: 1, text: "Eingegangen"},
 	ACCEPTED: {id: 2, text: "Akzeptiert"},
 	OUT: {id: 3, text: "Ausgeliehen"},
 	FINISHED: {id: 4, text: "Zurückgegeben"},
 	REJECTED: {id: -1, text: "Zurückgewiesen"},
-	byId: function(id) {
+	byId: function (id) {
 	    switch (id) {
 		case 1:
 		    return this.INCOMING;
@@ -62,7 +63,7 @@ fsmi.verleih = {
 		    return null;
 	    }
 	},
-	toText: function(id) {
+	toText: function (id) {
 	    switch (id) {
 		case 1:
 		    return this.INCOMING.text;
@@ -78,45 +79,113 @@ fsmi.verleih = {
 		    return "";
 	    }
 	},
-	finishEvent: function(id) {
+	finishEvent: function (id) {
 	    this.eventStateChange(fsmi.verleih.url + "?finish-event", id);
 	},
-	allowEvent: function(id) {
+	allowEvent: function (id) {
 	    this.eventStateChange(fsmi.verleih.url + "?allow-event", id);
 	},
-	rejectEvent: function(id) {
+	rejectEvent: function (id) {
 	    this.eventStateChange(fsmi.verleih.url + "?reject-event", id);
 	},
-	outEvent: function(id) {
+	outEvent: function (id) {
 	    this.eventStateChange(fsmi.verleih.url + "?out-event", id);
 	},
-	eventStateChange: function(url, id) {
+	eventStateChange: function (url, id) {
 	    ajax.asyncPost(url, JSON.stringify({
 		id: id,
 		secret: fsmi.verleih.mySecret
-	    }), function(xhr) {
+	    }), function (xhr) {
 		console.log(xhr.response);
 		fsmi.verleih.hideDetails();
 		gui.elem('eventListBody').innerHTML = "";
-		fsmi.verleih.getEventsFromServer();
+		fsmi.verleih.getEventsFromServer(fsmi.verleih.fillEvents);
 	    });
 	}
     },
     event: {
-	showEvent: function(evt) {
+	showEvent: function (evt) {
 	    console.log(evt);
 	    var event = evt.detail;
 	    fsmi.verleih.detail(event.id);
 	}
     },
-    detail: function(id) {
+    fillAllowEventList: function (events) {
+
+	var selector = gui.elem("allowEventSelector");
+
+	var empty = gui.create('option');
+	empty.setAttribute('value', -1);
+	selector.appendChild(empty);
+
+	events.forEach(function (val) {
+
+	    if (val.state === 1) {
+		var option = gui.create('option');
+		option.setAttribute('value', val.id);
+		option.textContent = val.name +
+			" (" +
+			moment(val.start).format("YYYY-MM-DD") +
+			" - " +
+			moment(val.end).format("YYYY-MM-DD")
+			+ ")";
+		selector.appendChild(option);
+	    }
+	});
+
+    },
+    allowSelectorChange: function () {
+	var elem = gui.elem("allowEventSelector");
+	var id = elem[elem.selectedIndex].value
+
+
+	var div = gui.elem("allowDivEventDetails");
+
+	this.getEventDetails(id, function (xhr) {
+	    var event = JSON.parse(xhr.response).details[0];
+
+	    div.innerHTML = "";
+	    div.appendChild(gui.createText("ID: " + event.id));
+	    div.appendChild(gui.createText("Name: " + event.name));
+	    div.appendChild(gui.createText("Kommentar: " + event.comment));
+	    div.appendChild(gui.createText("Wer: " + event.contact));
+	    div.appendChild(gui.createText("Fachschaftscontact: " + event.fscontact));
+	    div.appendChild(gui.createText(
+		    "Zeitraum: " + 
+		    moment(event.start).format("YYYY-MM-DD HH:mm")
+		    + " - "
+		    + moment(event.end).format("YYYY-MM-DD HH:mm")));
+	    div.appendChild(gui.createText("Was: "));
+	    var xhr = ajax.syncGet(fsmi.verleih.url + "?stuff&id=" + id);
+
+	    var stuff = JSON.parse(xhr.response).stuff;
+
+	    var ul = gui.create('ul');
+
+	    stuff.forEach(function (val) {
+		var elem = gui.create('li');
+		elem.textContent = val.count + "x " + val.name;
+
+
+		ul.appendChild(elem);
+	    });
+	    div.appendChild(ul);
+	});
+
+
+
+    },
+    detail: function (id) {
 	this.getDetails(id);
 	gui.elem('detail').style.display = "block";
 	gui.elem('detailEventContent').style.display = "block";
 	gui.elem('detailStuffContent').style.display = "none";
 	gui.elem('background').style.display = "block";
     },
-    getDetails: function(id) {
+    getEventDetails: function (id, callback) {
+	ajax.asyncGet(this.url + "?details&id=" + id, callback);
+    },
+    getDetails: function (id) {
 	var xhr = ajax.syncGet(this.url + "?details&id=" + id);
 
 	var details = JSON.parse(xhr.response).details[0];
@@ -135,7 +204,7 @@ fsmi.verleih = {
 	var stuff = JSON.parse(xhr.response).stuff;
 	var list = gui.elem('detailStuffList');
 	list.innerHTML = "";
-	stuff.forEach(function(val) {
+	stuff.forEach(function (val) {
 	    var elem = gui.create('li');
 	    elem.textContent = val.count + "x " + val.name;
 
@@ -146,31 +215,33 @@ fsmi.verleih = {
 	nav.innerHTML = "";
 	if (details.state === 1) {
 	    nav.appendChild(
-		    gui.createButton("Allow", function() {
-			fsmi.verleih.STATES.allowEvent(details.id)
+		    gui.createButton("Allow", function () {
+			fsmi.verleih.STATES.allowEvent(details.id);
 		    }));
 	    nav.appendChild(
 		    gui.createButton(
-			    "Reject", function() {
-				fsmi.verleih.STATES.rejectEvent(details.id)
+			    "Reject", function () {
+				fsmi.verleih.STATES.rejectEvent(details.id);
 			    }));
 	} else if (details.state === 2) {
 	    nav.appendChild(
-		    gui.createButton("Out", function() {
+		    gui.createButton("Out", function () {
 			fsmi.verleih.STATES.outEvent(details.id);
 		    }));
 	} else if (details.state === 3) {
 	    nav.appendChild(
-		    gui.createButton("Finish", function() {
+		    gui.createButton("Finish", function () {
 			fsmi.verleih.STATES.finishEvent(details.id);
 		    }));
 	}
     },
-    fillEvents: function(rawEvents) {
+    fillEvents: function (rawEvents) {
 
 	var events = JSON.parse(rawEvents.response).events;
+
 	var tbody = gui.elem('eventListBody');
-	events.forEach(function(val) {
+	fsmi.verleih.calendar.clear();
+	events.forEach(function (val) {
 
 	    var row = gui.create('tr');
 	    row.appendChild(gui.createColumn(val.id, 'event' + val.id));
@@ -191,13 +262,15 @@ fsmi.verleih = {
 	    tbody.appendChild(row);
 	    fsmi.verleih.calendar.add(val);
 	});
+	fsmi.verleih.fillAllowEventList(events);
+	this.events = events;
     },
-    fillStuff: function(xhr) {
+    fillStuff: function (xhr) {
 	var stuffList = JSON.parse(xhr.response).stufflist;
 
 	var tbody = gui.elem('stuffListBody');
 
-	stuffList.forEach(function(val) {
+	stuffList.forEach(function (val) {
 	    var row = gui.create('tr');
 	    row.appendChild(gui.createColumn(val.id, 'stuff' + val.id));
 	    row.appendChild(gui.createColumn(val.name));
@@ -222,13 +295,13 @@ fsmi.verleih = {
 	    tbody.appendChild(row);
 	});
     },
-    getEventsFromServer: function() {
-	ajax.asyncGet(this.url + "?events", this.fillEvents);
+    getEventsFromServer: function (callback) {
+	ajax.asyncGet(this.url + "?events", callback);
     },
-    getStuffFromServer: function() {
-	ajax.asyncGet(this.url + "?stufflist", this.fillStuff);
+    getStuffFromServer: function (callback) {
+	ajax.asyncGet(this.url + "?stufflist", callback);
     },
-    getDetailsStuff: function(id) {
+    getDetailsStuff: function (id) {
 	var xhr = ajax.syncGet(this.url + "?stuffdetail&id=" + id);
 
 	var stuff = JSON.parse(xhr.response).stuffdetail[0];
@@ -245,12 +318,12 @@ fsmi.verleih = {
 
 	var tbody = gui.elem('detailStuffInfos');
 	tbody.innerHTML = "";
-	stuffInfo.forEach(function(val) {
+	stuffInfo.forEach(function (val) {
 	    var tr = gui.create('tr');
 
 	    tr.appendChild(gui.createColumn(val.key));
 
-	    if (val.type == "picture") {
+	    if (val.type === "picture") {
 		var col = gui.create('td');
 		var img = gui.create('img');
 		img.setAttribute('src', val.value);
@@ -263,13 +336,13 @@ fsmi.verleih = {
 	    tbody.appendChild(tr);
 	});
     },
-    detailStuff: function(id) {
+    detailStuff: function (id) {
 	this.getDetailsStuff(id);
 	gui.elem('detail').style.display = "block";
 	gui.elem('detailStuffContent').style.display = "block";
 	gui.elem('background').style.display = "block";
     },
-    rangeSelected: function(event) {
+    rangeSelected: function (event) {
 
 	var start = event.detail.start;
 	var end = event.detail.end;
@@ -282,21 +355,22 @@ fsmi.verleih = {
 	gui.elem('eventFrom').value = start.format("YYYY-MM-DD HH:mm");
 	gui.elem('eventTo').value = end.format("YYYY-MM-DD HH:mm");
     },
-    init: function() {
+    init: function () {
 	fsmi.menu.changeTo(fsmi.menu.MENU[0]);
-	this.getEventsFromServer();
-	this.getStuffFromServer();
+	this.getEventsFromServer(fsmi.verleih.fillEvents);
+	console.log("fillStuff");
+	this.getStuffFromServer(fsmi.verleih.fillStuff);
 	ajax.asyncGet(this.url + "?get-stuff", this.fillEventStuffList);
 	document.body.addEventListener('calendar_range_selected', fsmi.verleih.rangeSelected);
 	document.body.addEventListener('calendar_event_clicked', fsmi.verleih.event.showEvent);
     },
-    fillEventStuffList: function(xhr) {
+    fillEventStuffList: function (xhr) {
 
 	var stuff = JSON.parse(xhr.response).stuff;
 
 	var list = gui.elem('eventStuffDataList');
 
-	stuff.forEach(function(val) {
+	stuff.forEach(function (val) {
 	    fsmi.verleih.availStuff[val.name] = val;
 	    var option = gui.create('option');
 	    option.setAttribute('value', val.name);
@@ -304,21 +378,21 @@ fsmi.verleih = {
 	});
 
     },
-    hideDetails: function() {
+    hideDetails: function () {
 	gui.elem('detail').style.display = "none";
 	gui.elem('background').style.display = "none";
 	gui.elem('detailEventContent').style.display = "none";
 	gui.elem('detailStuffContent').style.display = "none";
 	gui.elem('addMaterialContent').style.display = "none";
     },
-    showMaterialDialog: function() {
+    showMaterialDialog: function () {
 	gui.elem('detail').style.display = "block";
 	gui.elem('background').style.display = "block";
 	gui.elem('addMaterialContent').style.display = "block";
 	this.matInfoCounter = 0;
 	gui.elem('addStuffInfos').innerHTML = "";
     },
-    saveEvent: function() {
+    saveEvent: function () {
 
 	var contact = {
 	    name: gui.elem("eventPerson").value,
@@ -332,11 +406,11 @@ fsmi.verleih = {
 		    value: gui.elem('contact_phone').value
 		}
 	    ]
-	}
+	};
 
 	var startTime = moment(gui.elem('eventFrom').value, "YYYY-MM-DD HH:mm");
 	var endTime = moment(gui.elem('eventTo').value, "YYYY-MM-DD HH:mm");
-	
+
 
 	var outobject = {
 	    contact: contact,
@@ -351,20 +425,18 @@ fsmi.verleih = {
 
 	};
 	console.log(outobject);
-	ajax.asyncPost(fsmi.verleih.url + "?add-event", 
-	JSON.stringify(outobject), function(xhr) {
+	ajax.asyncPost(fsmi.verleih.url + "?add-event",
+		JSON.stringify(outobject), function (xhr) {
 	    console.log(JSON.parse(xhr.response));
 	});
 
     },
-    addStuffToEvent: function() {
+    addStuffToEvent: function () {
 
 	var name = gui.elem('eventStuffInput').value;
 
 	var json = fsmi.verleih.availStuff[name];
-	console.log("add");
-	console.log(json);
-	var item = gui.elem("event_stuff_list_item" + json.id)
+	var item = gui.elem("event_stuff_list_item" + json.id);
 
 	if (item) {
 
@@ -383,7 +455,7 @@ fsmi.verleih = {
 	item.textContent = item.stuffCount + "x " + json.name;
 	fsmi.verleih.stuff.push(json);
     },
-    addMaterial: function() {
+    addMaterial: function () {
 
 	var stuffName = gui.elem('addStuffName').value;
 	var intern_price = gui.elem('addStuffInternPrice').value;
@@ -423,13 +495,13 @@ fsmi.verleih = {
 	this.hideDetails();
 	this.reload();
     },
-    deleteMaterial: function(id) {
+    deleteMaterial: function (id) {
 
 	if (confirm("Delete stuff with id: " + id + "?")) {
 
 	    ajax.asyncPost(this.url + "?delete-material", JSON.stringify({
 		id: id
-	    }), function(xhr) {
+	    }), function (xhr) {
 		console.log(xhr.response);
 		gui.elem('stuffListBody').innerHTML = "";
 		fsmi.verleih.getStuffFromServer();
@@ -437,12 +509,13 @@ fsmi.verleih = {
 
 	}
     },
-    reload: function() {
+    reload: function () {
 	gui.elem('stuffListBody').innerHTML = "";
 	gui.elem('eventListBody').innerHTML = "";
+	this.calendar.clear();
 	this.init();
     },
-    addInfoRow: function() {
+    addInfoRow: function () {
 	var tbody = gui.elem('addStuffInfos');
 	var tr = gui.create('tr');
 	this.matInfoCounter++;
