@@ -19,6 +19,32 @@ class STATES {
 
 }
 
+function getApiEndPoint() {
+    $api_points = array(
+	"events",
+	"stuff",
+	"details",
+	"stuffdetail",
+	"stufflist",
+	"stuffinfo",
+	"get-stuff",
+	"requirements",
+	"allow-event",
+	"reject-event",
+	"out-event",
+	"finish-event",
+	"add-material",
+	"delete-material",
+	"add-event"
+    );
+
+    foreach ($api_points as $point) {
+	if (isset($_GET[$point])) {
+	    return $point;
+	}
+    }
+}
+
 function main() {
     global $db, $output, $contact;
 
@@ -37,59 +63,64 @@ function main() {
 
 	die();
     }
-    /*
-      if (isset($_GET["save"])) {
-      $output->addStatus("debug", "save");
-      $http_raw = file_get_contents("php://input");
 
-      if (isset($http_raw) && !empty($http_raw)) {
-      $input = json_decode($http_raw, true);
-      $cart->save($input);
-      }
-      }
-     */
+    $endPoint = getApiEndPoint();
     $http_raw = file_get_contents("php://input");
+    $obj = json_decode($http_raw, true);
 
-    if (isset($_GET["events"])) {
-	$lists->events();
-    } else if (isset($_GET["stuff"])) {
-	$lists->stuff();
-    } else if (isset($_GET["details"])) {
-	$lists->details();
-    } else if (isset($_GET["stufflist"])) {
-	$lists->stuffList();
-    } else if (isset($_GET["stuffdetail"])) {
-	$lists->stuffDetail();
-    } else if (isset($_GET["stuffinfo"])) {
-	$lists->stuffInfo();
-    } else if (isset($_GET["get-stuff"])) {
-	if (!empty($_GET["get-stuff"])) {
-	    $stuff->getByName($_GET["get-stuff"]);
-	} else {
-	    $stuff->getAll();
-	}
-    }
+    switch ($endPoint) {
 
-    if (isset($http_raw) && !empty($http_raw)) {
+	case "events":
+	    $lists->events();
+	    break;
+	case "stuff":
+	    $lists->stuff();
+	    break;
+	case "details":
+	    $lists->details();
+	    break;
+	case "stufflist":
+	    $lists->stuffList();
+	    break;
+	case "stuffdetail":
+	    $lists->stuffInfo();
+	case "get-stuff":
+	    if (!empty($_GET["get-stuff"])) {
+		$stuff->getByName($_GET["get-stuff"]);
+	    } else {
+		$stuff->getAll();
+	    }
+	    break;
+	case "requirements":
+	    if (!empty($_GET[$endPoint])) {
+		$stuff->getRequirements($_GET["$endPoint"]);
+	    }
+	    break;
 
-	$obj = json_decode($http_raw, true);
-	if (isset($_GET["allow-event"])) {
+	case "allow-event":
 	    $event->allow($obj);
-	} else if (isset($_GET["reject-event"])) {
+	    break;
+	case "reject-event":
 	    $event->reject($obj);
-	} else if (isset($_GET["out-event"])) {
+	    break;
+	case "out-event":
 	    $event->out($obj);
-	} else if (isset($_GET["finish-event"])) {
+	    break;
+	case "finish-event":
 	    $event->finish($obj);
-	}
-	if (isset($_GET["add-material"])) {
+	    break;
+	case "add-material":
 	    $stuff->add($obj);
-	} else if (isset($_GET["delete-material"])) {
+	    break;
+	case "delete-material":
 	    $stuff->delete($obj);
-	}
-	if (isset($_GET["add-event"])) {
+	    break;
+	case "add-event":
 	    $event->add($obj);
-	}
+	    break;
+	default:
+	    $output->addStatus("end-point", $endPoint . "isn't a valid endpoint.");
+	    break;
     }
 
     $output->write();
@@ -110,6 +141,8 @@ class Stuff {
 
 	$output->add("stuffBack", $object);
 
+	$stuff = $object;
+
 	$sql = "INSERT INTO stuff (name, intern_price, extern_price, count) "
 		. "VALUES(:name, :intern_price, :extern_price, :count)";
 
@@ -126,20 +159,41 @@ class Stuff {
 	$id = $db->lastInsertID();
 	$output->addStatus("add-stuff", $stmt->errorInfo());
 
-	foreach ($stuff['infos'] as $info) {
-	    $sql = "INSERT INTO stuff_infos(key, value, type, stuff) VALUES(:key, :value, :type, :stuff)";
+	$sql = "INSERT INTO stuff_infos(key, value, type, stuff) VALUES(:key, :value, :type, :stuff)";
 
-	    $param = array(
+	$params = array();
+
+	foreach ($stuff['infos'] as $info) {
+
+
+	    $params[] = array(
 		':key' => $info['key'],
 		':value' => $info['value'],
 		':type' => $info['type'],
 		':stuff' => $id
 	    );
-
-	    $stmt = $db->query($sql, $param);
-
-	    $output->addStatus("add-stuff-info", $stmt->errorInfo());
 	}
+
+	$stmt = $db->insert($sql, $params);
+
+	$output->addStatus("add-stuff-info", $stmt->errorInfo());
+
+	$reqSql = "INSERT INTO requirements(requirement, stuff, for) VALUES(:requirement, :stuff, :for)";
+
+	$reqParams = array();
+	foreach ($stuff['requirements'] as $reqs) {
+	    $reqParams[] = array(
+		":requirement" => $reqs["requirement"],
+		":stuff" => $id,
+		":for" => $reqs["for"]
+	    );
+	}
+
+	$stmt = $db->insert($reqSql, $reqParams);
+
+	$output->addStatus("add-stuff-requirements", $stmt->errorInfo());
+
+
 	$db->commit();
     }
 
@@ -161,33 +215,48 @@ class Stuff {
 
 	$output->addStatus("delete-stuff", $stmt->errorInfo());
     }
-    
+
     public function getByName($name) {
 	global $db, $output;
-	
+
 	$sql = "SELECT * FROM stuff WHERE name = :name";
-	
+
 	$param = array(
 	    ":name" => $name
 	);
-	
+
 	$stmt = $db->query($sql, $param);
-	
+
 	$output->addStatus("stuff", $stmt->errorInfo());
 	$output->add("stuff", $stmt->fetchAll(PDO::FETCH_ASSOC));
     }
-    
+
     public function getAll() {
 	global $db, $output;
-	
+
 	$sql = "SELECT * FROM stuff";
-	
+
 	$param = array();
-	
+
 	$stmt = $db->query($sql, $param);
-	
+
 	$output->addStatus("stuff", $stmt->errorInfo());
 	$output->add("stuff", $stmt->fetchAll(PDO::FETCH_ASSOC));
+    }
+
+    public function getRequirements($id) {
+	global $db, $output;
+
+	$sql = "SELECT * FROM requirements WHERE stuff = :stuff";
+
+	$param = array(
+	    ":stuff" => $id
+	);
+
+	$stmt = $db->query($sql, $param);
+
+	$output->addStatus("requirements", $stmt->errorInfo());
+	$output->add("requirements", $stmt->fetchAll(PDO::FETCH_ASSOC));
     }
 
 }
@@ -369,18 +438,16 @@ class Event {
 	// check for contact token
 	if (isset($obj["contact_token"]) && !empty($obj["contact_token"])) {
 	    $getsql = "SELECT id FROM contact WHERE token = :token";
-	    
+
 	    $getparam = array(
 		":token" => $obj["contact_token"]
 	    );
-	    
+
 	    $stmt = $db->query($getsql, $getparam);
-	    
+
 	    if ($stmt->errorCode() != 0) {
 		return;
 	    }
-	    
-	    
 	} else {
 	    // create contact
 	    $contactsql = "INSERT INTO contact(name, token) "
@@ -459,20 +526,21 @@ class Event {
 	// insert event stuff
 	$stuffsql = "INSERT INTO event_stuff(event, stuff) VALUES(:event, :stuff)";
 
+	$params = array();
 	foreach ($obj["event"]["stuff"] as $stuff) {
 
-	    $stuffparam = array(
+	    $params[] = array(
 		":event" => $eventid,
 		":stuff" => $stuff["id"]
 	    );
+	}
 
-	    $stmt = $db->query($stuffsql, $stuffparam);
+	$stmt = $db->insert($stuffsql, $params);
 
-	    if ($stmt->errorCode() != 0) {
-		$output->addStatus("add-event_stuff", $stmt->errorInfo());
-		$db->rollback();
-		return;
-	    }
+	if ($stmt->errorCode() != 0) {
+	    $output->addStatus("add-event_stuff", $stmt->errorInfo());
+	    $db->rollback();
+	    return;
 	}
 
 	$db->commit();
@@ -526,6 +594,25 @@ class DB {
 	}
 
 	$stm->execute($params);
+
+
+	return $stm;
+    }
+
+    function insert($sql, $params) {
+	global $output, $orderBy;
+
+	$stm = $this->db->prepare($sql);
+
+	if ($this->db->errorCode() > 0) {
+	    $output->addStatus("db", $this->db->errorInfo());
+	    return null;
+	}
+
+	foreach ($params as $param) {
+
+	    $stm->execute($param);
+	}
 
 
 	return $stm;

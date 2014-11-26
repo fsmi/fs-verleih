@@ -100,6 +100,21 @@ var gui = gui || {
     create: function(tag) {
 	return document.createElement(tag);
     },
+    createOption: function(text, value) {
+	var option = document.createElement("option");
+	option.setAttribute("value", value);
+	option.textContent = text;
+	
+	return option;
+    },
+    createCheckbox: function(styleClass, clickEvent) {
+	var elem = gui.create("input");
+	elem.setAttribute("class", styleClass);
+	elem.setAttribute("type","checkbox");
+	elem.addEventListener("click", clickEvent);
+	
+	return elem;
+    },
     /**
      * creates a span object with the given content
      * @param {String} the content of the span
@@ -116,11 +131,13 @@ var gui = gui || {
 	col.textContent = content;
 	return col;
     },
-    createButton: function(text, func) {
+    createButton: function(text, func, param) {
 	var button = gui.create('span');
 	button.classList.add('button');
 	button.textContent = text;
-	button.addEventListener('click', func);
+	button.addEventListener('click', function() {
+	    func(param);
+	});
 	return button;
     }
 };

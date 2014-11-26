@@ -151,7 +151,7 @@ fsmi.verleih = {
 	    div.appendChild(gui.createText("Wer: " + event.contact));
 	    div.appendChild(gui.createText("Fachschaftscontact: " + event.fscontact));
 	    div.appendChild(gui.createText(
-		    "Zeitraum: " + 
+		    "Zeitraum: " +
 		    moment(event.start).format("YYYY-MM-DD HH:mm")
 		    + " - "
 		    + moment(event.end).format("YYYY-MM-DD HH:mm")));
@@ -171,9 +171,6 @@ fsmi.verleih = {
 	    });
 	    div.appendChild(ul);
 	});
-
-
-
     },
     detail: function (id) {
 	this.getDetails(id);
@@ -263,7 +260,56 @@ fsmi.verleih = {
 	    fsmi.verleih.calendar.add(val);
 	});
 	fsmi.verleih.fillAllowEventList(events);
+	fsmi.verleih.fillEventSelector(events);
 	this.events = events;
+    },
+    fillEventSelector: function (events) {
+	var giveSelector = gui.elem("giveEventSelector");
+	var getSelector = gui.elem("getEventSelector");
+
+	giveSelector.innerHTML = "";
+	getSelector.innerHTML = "";
+
+	var option = gui.createOption("", 0);
+	giveSelector.appendChild(option);
+	getSelector.appendChild(option.cloneNode(true));
+
+	events.forEach(function (val) {
+	    var option = gui.createOption(val.name, val.id);
+	    giveSelector.appendChild(option);
+	    getSelector.appendChild(option.cloneNode(true));
+	});
+    },
+    selectGetEvent: function () {
+
+	var selector = gui.elem("getEventSelector");
+	var id = selector.options[selector.selectedIndex].value;
+	var get = gui.elem("getRequirements");
+
+	this.selectEvent(id, get);
+    },
+    selectGiveEvent: function () {
+	var selector = gui.elem("getEventSelector");
+	var id = selector.options[selector.selectedIndex].value;
+	var give = gui.elem("giveRequirements");
+
+	selectEvent(id, give);
+    },
+    selectEvent: function (id, element) {
+	ajax.asyncGet(fsmi.verleih.url + "?requirements=" + id, function (xhr) {
+	    var requirements = JSON.parse(xhr.response).requirements;
+	    console.log(requirements);
+	    element.innerHTML = "";
+
+	    requirements.forEach(function (req) {
+		var elem = gui.create("li");
+
+		elem.appendChild(gui.createCheckbox("reqCheckboxes"),
+			fsmi.verleih.checkAllGiveCB);
+		elem.appendChild(gui.createText(req.requirement));
+		element.appendChild(elem);
+	    });
+	});
     },
     fillStuff: function (xhr) {
 	var stuffList = JSON.parse(xhr.response).stufflist;
@@ -465,20 +511,45 @@ fsmi.verleih = {
 	var infos = [];
 
 	while (this.matInfoCounter > 0) {
-	    var key = gui.elem('key' + this.matInfoCounter).value;
-	    var value = gui.elem('value' + this.matInfoCounter).value;
-	    var select = gui.elem('select' + this.matInfoCounter);
-	    var type = select.options[select.selectedIndex].value;
 
-	    if (key !== "") {
-		var info = {
-		    key: key,
-		    value: value,
-		    type: type
+	    if (gui.elem('infoRow' + this.matInfoCounter)) {
+
+		var key = gui.elem('key' + this.matInfoCounter).value;
+		var value = gui.elem('value' + this.matInfoCounter).value;
+		var select = gui.elem('select' + this.matInfoCounter);
+		var type = select.options[select.selectedIndex].value;
+
+		if (key !== "") {
+		    var info = {
+			key: key,
+			value: value,
+			type: type
+		    };
+		    infos.push(info);
 		}
-		infos.push(info);
 	    }
 	    this.matInfoCounter--;
+	}
+	
+	var reqs = [];
+	
+	while (this.matReqCounter > 0) {
+
+	    if (gui.elem('reqRow' + this.matInfoCounter)) {
+
+		var key = gui.elem('req' + this.matReqCounter).value;
+		var select = gui.elem('for' + this.matInfoCounter);
+		var reqFor = select.options[select.selectedIndex].value;
+
+		if (key !== "") {
+		    var req = {
+			for: reqFor,
+			requirement: key
+		    };
+		    reqs.push(req);
+		}
+	    }
+	    this.matReqCounter--;
 	}
 
 
@@ -487,8 +558,9 @@ fsmi.verleih = {
 	    intern_price: intern_price,
 	    extern_price: extern_price,
 	    count: count,
-	    infos: infos
-	}
+	    infos: infos,
+	    requirements: reqs
+	};
 
 	console.log(matObject);
 	console.log(ajax.syncPost(this.url + "?add-material", JSON.stringify(matObject)));
@@ -504,7 +576,7 @@ fsmi.verleih = {
 	    }), function (xhr) {
 		console.log(xhr.response);
 		gui.elem('stuffListBody').innerHTML = "";
-		fsmi.verleih.getStuffFromServer();
+		fsmi.verleih.getStuffFromServer(function() {});
 	    });
 
 	}
@@ -515,10 +587,64 @@ fsmi.verleih = {
 	this.calendar.clear();
 	this.init();
     },
+    delReqRow: function (id) {
+	var row = gui.elem('reqRow' + id);
+	row.parentNode.removeChild(row);
+    },
+    addReqRow: function () {
+	if (!this.matReqCounter) {
+	    this.matReqCounter = 0;
+	}
+
+	this.matReqCounter++;
+
+	var tbody = gui.elem('addStuffReq');
+	var tr = gui.create('tr');
+	tr.setAttribute('id', 'reqRow' + this.matReqCounter);
+
+
+
+	var reqRow = gui.create('td');
+
+	var input = gui.create('input');
+	input.setAttribute('type', 'text');
+	input.setAttribute('id', 'req' + this.matRowCounter);
+	reqRow.appendChild(input);
+
+
+	var forRow = gui.create('td');
+
+	var select = gui.create('select');
+	select.setAttribute('id', 'for' + this.matReqCounter);
+	select.appendChild(gui.createOption('Ausgabe', 1));
+	select.appendChild(gui.createOption('Rückgabe', 2));
+	select.appendChild(gui.createOption('Ausgabe und Rückgabe', 3));
+
+	forRow.appendChild(select);
+
+	var deleteColumn = gui.create('td');
+	var button = gui.createButton('[x]', this.delReqRow, this.matReqCounter);
+	deleteColumn.appendChild(button);
+
+
+	tr.appendChild(reqRow);
+	tr.appendChild(forRow);
+	tr.appendChild(deleteColumn);
+	tbody.appendChild(tr);
+
+    },
+    delInfoRow: function (id) {
+	var row = gui.elem('infoRow' + id);
+	row.parentNode.removeChild(row);
+    },
     addInfoRow: function () {
 	var tbody = gui.elem('addStuffInfos');
 	var tr = gui.create('tr');
+
 	this.matInfoCounter++;
+
+	tr.setAttribute('id', "infoRow" + this.matInfoCounter);
+
 
 	var keyRow = gui.create('td');
 	var keyInput = gui.create('input');
@@ -547,9 +673,14 @@ fsmi.verleih = {
 	typeSelect.appendChild(option);
 	typeRow.appendChild(typeSelect);
 
-	tr.appendChild(typeRow);
+	var deleteColumn = gui.create('td');
+	var button = gui.createButton('[x]', this.delInfoRow, this.matInfoCounter);
+	deleteColumn.appendChild(button);
 
+	tr.appendChild(typeRow);
+	tr.appendChild(deleteColumn);
 	tbody.appendChild(tr);
+
     }
 };
 fsmi.verleih.init();

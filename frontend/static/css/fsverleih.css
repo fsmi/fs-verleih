@@ -8,6 +8,10 @@ and open the template in the editor.
     Author     : mpease
 */
 
+#giveRequirements, #getRequirements {
+    list-style: none;
+}
+
 html, body {
     width: 100%;
     padding: 0;

@@ -140,10 +140,29 @@ and open the template in the editor.
 	    </div>
     </div>
     <div id="giveDiv">
-
+	<h2>Ausleihen</h2>
+	<select id="giveEventSelector" onchange="fsmi.verleih.selectGiveEvent()">
+	    <option value="0"></option>
+	</select>
+	
+	<div>
+	    Dies alles muss da sein:
+	    <ul id="giveRequirements">
+		
+	    </ul>
+	</div>
     </div>
     <div id="getDiv">
-
+	<h2>Rückgabe</h2>
+	<select id="getEventSelector" onchange="fsmi.verleih.selectGetEvent()">
+	    <option value="0"></option>
+	</select>
+	
+	<div>Dies alles muss da sein:
+	    <ul id="getRequirements">
+		
+	    </ul>
+	</div>
     </div>
     <div id="detail">
 
@@ -235,6 +254,20 @@ and open the template in the editor.
 		</thead>
 		<tbody id="addStuffInfos"></tbody>
 	    </table>
+	    
+	    <span>Requirements</span>
+	    
+	    <table>
+		<thead>
+		    <tr>
+			<th>Was</th>
+			<th>Für</th>
+			<th><span class="button" onclick="fsmi.verleih.addReqRow()">Requirement hinzufügen</span></th>
+		    </tr>
+		</thead>
+		<tbody id="addStuffReq"></tbody>
+	    </table>
+	    
 	    <div id="addStuffActionBar">
 		<span class="button" onclick="fsmi.verleih.addMaterial()">Material hinzufügen</span>
 	    </div>
