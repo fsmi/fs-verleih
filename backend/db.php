@@ -68,6 +68,8 @@ function main() {
     $http_raw = file_get_contents("php://input");
     $obj = json_decode($http_raw, true);
 
+    $output->addStatus("payload", $obj);
+
     switch ($endPoint) {
 
 	case "events":
@@ -92,9 +94,7 @@ function main() {
 	    }
 	    break;
 	case "requirements":
-	    if (!empty($_GET[$endPoint])) {
-		$stuff->getRequirements($_GET["$endPoint"]);
-	    }
+	    $event->getRequirements($obj['event'], $obj['for']);
 	    break;
 
 	case "allow-event":
@@ -139,8 +139,6 @@ class Stuff {
     public function add($object) {
 	global $db, $output;
 
-	$output->add("stuffBack", $object);
-
 	$stuff = $object;
 
 	$sql = "INSERT INTO stuff (name, intern_price, extern_price, count) "
@@ -178,7 +176,7 @@ class Stuff {
 
 	$output->addStatus("add-stuff-info", $stmt->errorInfo());
 
-	$reqSql = "INSERT INTO requirements(requirement, stuff, for) VALUES(:requirement, :stuff, :for)";
+	$reqSql = "INSERT INTO requirements(requirement, stuff, forwhen) VALUES(:requirement, :stuff, :for)";
 
 	$reqParams = array();
 	foreach ($stuff['requirements'] as $reqs) {
@@ -204,15 +202,12 @@ class Stuff {
 	    $output->addStatus("delete-stuff", "No ID set!");
 	    return;
 	}
-
 	$sql = "DELETE FROM stuff WHERE id = :id";
 
 	$param = array(
 	    ":id" => $object["id"]
 	);
-
 	$stmt = $db->query($sql, $param);
-
 	$output->addStatus("delete-stuff", $stmt->errorInfo());
     }
 
@@ -242,21 +237,6 @@ class Stuff {
 
 	$output->addStatus("stuff", $stmt->errorInfo());
 	$output->add("stuff", $stmt->fetchAll(PDO::FETCH_ASSOC));
-    }
-
-    public function getRequirements($id) {
-	global $db, $output;
-
-	$sql = "SELECT * FROM requirements WHERE stuff = :stuff";
-
-	$param = array(
-	    ":stuff" => $id
-	);
-
-	$stmt = $db->query($sql, $param);
-
-	$output->addStatus("requirements", $stmt->errorInfo());
-	$output->add("requirements", $stmt->fetchAll(PDO::FETCH_ASSOC));
     }
 
 }
@@ -544,6 +524,29 @@ class Event {
 	}
 
 	$db->commit();
+    }
+
+    public function getRequirements($id, $for) {
+	global $db, $output;
+
+
+
+	if (isset($id) && isset($for)) {
+
+	    $sql = "SELECT * FROM requirements_for_event"
+		    . " WHERE event = :event"
+		    . " AND (forwhen = :forwhen OR forwhen = 3)";
+
+	    $param = array(
+		":event" => $id,
+		":forwhen" => $for
+	    );
+
+	    $stmt = $db->query($sql, $param);
+
+	    $output->addStatus("requirements", $stmt->errorInfo());
+	    $output->add("requirements", $stmt->fetchAll(PDO::FETCH_ASSOC));
+	}
     }
 
 }

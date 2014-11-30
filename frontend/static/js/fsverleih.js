@@ -286,19 +286,28 @@ fsmi.verleih = {
 	var id = selector.options[selector.selectedIndex].value;
 	var get = gui.elem("getRequirements");
 
-	this.selectEvent(id, get);
+	this.selectEvent(id, get, 2);
     },
     selectGiveEvent: function () {
-	var selector = gui.elem("getEventSelector");
+	var selector = gui.elem("giveEventSelector");
 	var id = selector.options[selector.selectedIndex].value;
+	console.log(selector.selectedIndex);
+	
 	var give = gui.elem("giveRequirements");
 
-	selectEvent(id, give);
+	this.selectEvent(id, give, 1);
     },
-    selectEvent: function (id, element) {
-	ajax.asyncGet(fsmi.verleih.url + "?requirements=" + id, function (xhr) {
+    selectEvent: function (id, element, for_id) {
+	
+	ajax.asyncPost(fsmi.verleih.url + "?requirements", JSON.stringify(
+		{
+		    for : for_id,
+		    event: id
+		}), function (xhr) {
+
+	    console.log(xhr);
 	    var requirements = JSON.parse(xhr.response).requirements;
-	    console.log(requirements);
+
 	    element.innerHTML = "";
 
 	    requirements.forEach(function (req) {
@@ -306,7 +315,7 @@ fsmi.verleih = {
 
 		elem.appendChild(gui.createCheckbox("reqCheckboxes"),
 			fsmi.verleih.checkAllGiveCB);
-		elem.appendChild(gui.createText(req.requirement));
+		elem.appendChild(gui.createText(req.requirement + " (" + req.stuffname + ")"));
 		element.appendChild(elem);
 	    });
 	});
@@ -530,9 +539,9 @@ fsmi.verleih = {
 	    }
 	    this.matInfoCounter--;
 	}
-	
+
 	var reqs = [];
-	
+
 	while (this.matReqCounter > 0) {
 
 	    if (gui.elem('reqRow' + this.matInfoCounter)) {
@@ -543,7 +552,7 @@ fsmi.verleih = {
 
 		if (key !== "") {
 		    var req = {
-			for: reqFor,
+			for : reqFor,
 			requirement: key
 		    };
 		    reqs.push(req);
@@ -576,7 +585,8 @@ fsmi.verleih = {
 	    }), function (xhr) {
 		console.log(xhr.response);
 		gui.elem('stuffListBody').innerHTML = "";
-		fsmi.verleih.getStuffFromServer(function() {});
+		fsmi.verleih.getStuffFromServer(function () {
+		});
 	    });
 
 	}
